@@ -11,3 +11,5 @@ export type { MoneyInputProps } from './MoneyInput';
 export { InlineHelpPopover } from './InlineHelpPopover';
 export { AuditIdentityModal } from './AuditIdentityModal';
 export { AccountPickerModal } from './AccountPickerModal';
+export { OpeningBalanceModal } from './OpeningBalanceModal';
+export type { OpeningBalanceModalProps } from './OpeningBalanceModal';

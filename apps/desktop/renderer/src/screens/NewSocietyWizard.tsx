@@ -6,6 +6,7 @@ import type {
   SocietyIdentityInput,
 } from '@sams/shared-types';
 import { getIpcErrorMessage } from '../hooks/session';
+import { useSession } from '../hooks/SessionContext';
 
 const steps = [
   'Society Identity',
@@ -39,6 +40,7 @@ const defaultFinancialYear = (): FinancialYearInput => {
 
 export function NewSocietyWizard(): React.ReactElement {
   const navigate = useNavigate();
+  const { refreshSession } = useSession();
   const [step, setStep] = useState(0);
   const [identity, setIdentity] = useState(defaultIdentity);
   const [financialYear, setFinancialYear] = useState(defaultFinancialYear);
@@ -116,6 +118,7 @@ export function NewSocietyWizard(): React.ReactElement {
           return;
         }
         setResultLabel(`${response.data.societyName} (${response.data.fyLabel})`);
+        await refreshSession();
         setStep(5);
       } finally {
         setBusy(false);
@@ -262,7 +265,12 @@ export function NewSocietyWizard(): React.ReactElement {
       {step === 5 && (
         <section className="wizard-panel">
           <p>Society database created successfully for {resultLabel}.</p>
-          <button type="button" onClick={() => navigate('/login')}>
+          <button
+            type="button"
+            onClick={() => {
+              void refreshSession().then(() => navigate('/login'));
+            }}
+          >
             Continue to Sign In
           </button>
         </section>

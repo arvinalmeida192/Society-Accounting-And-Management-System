@@ -1,7 +1,8 @@
 import type { PrismaClient } from '@prisma/client';
+import { ensureDefaultChartOfAccounts } from './coa-seed.js';
 import { seedSocietyConfiguration } from './report-template-seed.js';
 
-/** Back-fill Phase 3 defaults for databases created in Phase 2. */
+/** Back-fill Phase 3–4 defaults for databases created in earlier phases. */
 export async function ensureSocietyConfiguration(client: PrismaClient): Promise<void> {
   const identity = await client.societyIdentity.findFirst();
   if (!identity) {
@@ -9,16 +10,19 @@ export async function ensureSocietyConfiguration(client: PrismaClient): Promise<
   }
 
   const parameters = await client.societyParameters.findFirst();
-  if (parameters) {
+  if (!parameters) {
+    const financialYear = await client.financialYear.findFirst({
+      orderBy: { startDate: 'desc' },
+    });
+    if (!financialYear) {
+      return;
+    }
+    await seedSocietyConfiguration(client, identity.id, financialYear.id);
     return;
   }
 
-  const financialYear = await client.financialYear.findFirst({
-    orderBy: { startDate: 'desc' },
-  });
-  if (!financialYear) {
-    return;
-  }
+  await ensureDefaultChartOfAccounts(client);
 
-  await seedSocietyConfiguration(client, identity.id, financialYear.id);
+  const { seedPropertyReferenceMasters } = await import('./property-reference-seed.js');
+  await seedPropertyReferenceMasters(client);
 }

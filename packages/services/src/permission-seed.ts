@@ -5,6 +5,8 @@ import { PermissionAction, UserRole, type PermissionSeedRow } from '@sams/shared
 
 const RESOURCES = {
   SOCIETY_PARAMETERS: 'society.parameters',
+  ACCOUNTING_COA: 'accounting.coa',
+  PROPERTY: 'property',
   MEMBERS: 'members',
   VOUCHERS: 'vouchers',
   BILLING: 'billing',
@@ -29,6 +31,22 @@ const MATRIX: MatrixEntry[] = [
     accountant: [PermissionAction.READ],
     operator: [],
     committee: [],
+    auditor: [PermissionAction.READ],
+  },
+  {
+    resource: RESOURCES.ACCOUNTING_COA,
+    admin: [PermissionAction.CREATE, PermissionAction.READ, PermissionAction.UPDATE, PermissionAction.DELETE],
+    accountant: [PermissionAction.CREATE, PermissionAction.READ, PermissionAction.UPDATE, PermissionAction.DELETE],
+    operator: [PermissionAction.READ],
+    committee: [],
+    auditor: [PermissionAction.READ],
+  },
+  {
+    resource: RESOURCES.PROPERTY,
+    admin: [PermissionAction.CREATE, PermissionAction.READ, PermissionAction.UPDATE, PermissionAction.DELETE],
+    accountant: [PermissionAction.CREATE, PermissionAction.READ, PermissionAction.UPDATE, PermissionAction.DELETE],
+    operator: [PermissionAction.CREATE, PermissionAction.READ, PermissionAction.UPDATE],
+    committee: [PermissionAction.READ],
     auditor: [PermissionAction.READ],
   },
   {

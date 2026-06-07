@@ -23,7 +23,12 @@ export class AppConfigStore {
   }
 
   getRecentDatabases(): RecentDatabaseEntry[] {
-    return [...this.config.recentDatabases].sort(
+    const existing = this.config.recentDatabases.filter((entry) => existsSync(entry.path));
+    if (existing.length !== this.config.recentDatabases.length) {
+      this.config.recentDatabases = existing;
+      this.save();
+    }
+    return [...existing].sort(
       (a, b) => new Date(b.lastOpened).getTime() - new Date(a.lastOpened).getTime(),
     );
   }

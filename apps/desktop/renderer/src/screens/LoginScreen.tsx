@@ -1,27 +1,21 @@
 import { FormEvent, useEffect, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
-import type { SessionDto } from '@sams/shared-types';
 import { getIpcErrorMessage } from '../hooks/session';
+import { useSession } from '../hooks/SessionContext';
 
-interface LoginScreenProps {
-  onLoggedIn: () => void;
-}
-
-export function LoginScreen({ onLoggedIn }: LoginScreenProps): React.ReactElement {
+export function LoginScreen(): React.ReactElement {
   const navigate = useNavigate();
+  const { session: sessionInfo, refreshSession } = useSession();
   const [username, setUsername] = useState('admin');
   const [password, setPassword] = useState('');
-  const [sessionInfo, setSessionInfo] = useState<SessionDto | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [busy, setBusy] = useState(false);
 
   useEffect(() => {
-    void window.sams.auth.getSession().then((res) => {
-      if (res.success && res.data) {
-        setSessionInfo(res.data);
-      }
-    });
-  }, []);
+    if (sessionInfo?.username) {
+      setUsername(sessionInfo.username);
+    }
+  }, [sessionInfo?.username]);
 
   const onSubmit = async (event: FormEvent): Promise<void> => {
     event.preventDefault();
@@ -33,8 +27,8 @@ export function LoginScreen({ onLoggedIn }: LoginScreenProps): React.ReactElemen
         setError(getIpcErrorMessage(response.error));
         return;
       }
-      onLoggedIn();
-      navigate('/app');
+      await refreshSession();
+      navigate('/app/home');
     } finally {
       setBusy(false);
     }

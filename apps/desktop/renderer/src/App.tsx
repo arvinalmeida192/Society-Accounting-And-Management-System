@@ -1,39 +1,13 @@
 import { Navigate, Route, Routes } from 'react-router-dom';
-import { useCallback, useEffect, useState } from 'react';
-import type { SessionDto } from '@sams/shared-types';
-import { refreshSession } from './hooks/session';
+import { SessionProvider, useSession } from './hooks/SessionContext';
 import { LoginScreen } from './screens/LoginScreen';
 import { MainShell } from './screens/MainShell';
 import { NewFinancialYearWizard } from './screens/NewFinancialYearWizard';
 import { NewSocietyWizard } from './screens/NewSocietyWizard';
 import { StartupScreen } from './screens/StartupScreen';
 
-export default function App(): React.ReactElement {
-  const [session, setSession] = useState<SessionDto | null>(null);
-  const [loading, setLoading] = useState(true);
-  const [bootError, setBootError] = useState<string | null>(null);
-
-  const loadSession = useCallback(async (): Promise<void> => {
-    try {
-      if (typeof window.sams?.auth?.getSession !== 'function') {
-        setBootError('Application bridge failed to initialize. Restart the app.');
-        setSession(null);
-        return;
-      }
-      const data = await refreshSession();
-      setSession(data);
-      setBootError(null);
-    } catch (error) {
-      setBootError(error instanceof Error ? error.message : 'Failed to load session.');
-      setSession(null);
-    } finally {
-      setLoading(false);
-    }
-  }, []);
-
-  useEffect(() => {
-    void loadSession();
-  }, [loadSession]);
+function AppRoutes(): React.ReactElement {
+  const { session, loading, bootError, refreshSession } = useSession();
 
   if (loading) {
     return <div className="loading-screen">Loading SAMS…</div>;
@@ -43,7 +17,7 @@ export default function App(): React.ReactElement {
     return (
       <div className="loading-screen">
         <p className="form-error">{bootError}</p>
-        <button type="button" onClick={() => void loadSession()}>
+        <button type="button" onClick={() => void refreshSession()}>
           Retry
         </button>
       </div>
@@ -84,7 +58,7 @@ export default function App(): React.ReactElement {
           ) : isAuthenticated ? (
             <Navigate to="/app/home" replace />
           ) : (
-            <LoginScreen onLoggedIn={() => void loadSession()} />
+            <LoginScreen />
           )
         }
       />
@@ -96,11 +70,19 @@ export default function App(): React.ReactElement {
           ) : !isAuthenticated ? (
             <Navigate to="/login" replace />
           ) : (
-            <MainShell session={session!} onSessionChange={() => void loadSession()} />
+            <MainShell session={session!} />
           )
         }
       />
       <Route path="*" element={<Navigate to="/startup" replace />} />
     </Routes>
+  );
+}
+
+export default function App(): React.ReactElement {
+  return (
+    <SessionProvider>
+      <AppRoutes />
+    </SessionProvider>
   );
 }

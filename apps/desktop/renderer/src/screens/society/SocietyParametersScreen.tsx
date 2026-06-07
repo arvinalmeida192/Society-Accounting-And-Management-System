@@ -7,9 +7,12 @@ import {
   TariffBasisFlag,
   TariffMethod,
   BillNumberingMode,
+  type AccountPickerItem,
+  type CoaPickerKind,
   type SocietyParametersDto,
 } from '@sams/shared-types';
 import {
+  AccountPickerModal,
   AuditIdentityModal,
   ConfirmDialog,
   FilterDrawer,
@@ -86,16 +89,69 @@ export function SocietyParametersScreen(): React.ReactElement {
   const [auditOpen, setAuditOpen] = useState(false);
   const [filterOpen, setFilterOpen] = useState(false);
   const [printOpen, setPrintOpen] = useState(false);
+  const [pickerOpen, setPickerOpen] = useState(false);
+  const [pickerKind, setPickerKind] = useState<CoaPickerKind>('ACCOUNT');
+  const [pickerField, setPickerField] = useState<keyof SocietyParametersDto | null>(null);
+  const [pickerTitle, setPickerTitle] = useState('');
+  const [linkageLabels, setLinkageLabels] = useState<Record<string, string>>({});
+
+  const openPicker = (
+    field: keyof SocietyParametersDto,
+    kind: CoaPickerKind,
+    title: string,
+  ): void => {
+    if (!editing) return;
+    setPickerField(field);
+    setPickerKind(kind);
+    setPickerTitle(title);
+    setPickerOpen(true);
+  };
+
+  const resolveLinkageLabels = async (params: SocietyParametersDto): Promise<void> => {
+    const entries: Array<[string, string | null, CoaPickerKind]> = [
+      ['shareCapitalGroupId', params.shareCapitalGroupId, 'GROUP'],
+      ['shareCapitalSubgroupId', params.shareCapitalSubgroupId, 'SUBGROUP'],
+      ['cashBankGroupId', params.cashBankGroupId, 'GROUP'],
+      ['bankSubgroupId', params.bankSubgroupId, 'SUBGROUP'],
+      ['cashSubgroupId', params.cashSubgroupId, 'SUBGROUP'],
+      ['memberSubgroupId', params.memberSubgroupId, 'SUBGROUP'],
+      ['tenantSubgroupId', params.tenantSubgroupId, 'SUBGROUP'],
+      ['incomeExpenseSubgroupId', params.incomeExpenseSubgroupId, 'SUBGROUP'],
+      ['interestAccountId', params.interestAccountId, 'ACCOUNT'],
+      ['adjustmentAccountId', params.adjustmentAccountId, 'ACCOUNT'],
+      ['nonOccupancyAccountId', params.nonOccupancyAccountId, 'ACCOUNT'],
+      ['serviceTaxAccountId', params.serviceTaxAccountId, 'ACCOUNT'],
+      ['educationCessAccountId', params.educationCessAccountId, 'ACCOUNT'],
+    ];
+
+    const labels: Record<string, string> = {};
+    for (const [field, id, kind] of entries) {
+      if (!id) continue;
+      const response = await window.sams.coa.searchForPicker('', kind, { activeOnly: false });
+      const match = response.data?.find((item) => item.id === id);
+      if (match) {
+        labels[field] = match.label;
+      }
+    }
+    setLinkageLabels(labels);
+  };
 
   useEffect(() => {
     void window.sams.society.getParameters().then((response) => {
       if (response.success && response.data) {
         form.commit(response.data);
+        void resolveLinkageLabels(response.data);
       } else {
         setError(getIpcErrorMessage(response.error));
       }
     });
   }, []);
+
+  const handlePickerSelect = (item: AccountPickerItem): void => {
+    if (!pickerField) return;
+    form.setValue({ ...form.value, [pickerField]: item.id });
+    setLinkageLabels((current) => ({ ...current, [pickerField]: item.label }));
+  };
 
   const save = async (acknowledgeFrequencyWarning = false): Promise<void> => {
     setError(null);
@@ -113,9 +169,50 @@ export function SocietyParametersScreen(): React.ReactElement {
       return;
     }
     form.commit(response.data.parameters);
+    void resolveLinkageLabels(response.data.parameters);
     setWarnings(response.data.warnings);
     setEditing(false);
     setConfirmFrequency(false);
+  };
+
+  const linkageButton = (
+    field: keyof SocietyParametersDto,
+    kind: CoaPickerKind,
+    title: string,
+  ): React.ReactElement => {
+    const value = form.value[field] as string | null;
+    const label = value ? linkageLabels[field] ?? value : 'Not selected';
+    return (
+      <label>
+        {title}
+        <div className="linkage-picker-row">
+          <span className="linkage-picker-value">{label}</span>
+          <button
+            type="button"
+            disabled={disabled}
+            onClick={() => openPicker(field, kind, title)}
+          >
+            Select…
+          </button>
+          {value && (
+            <button
+              type="button"
+              disabled={disabled}
+              onClick={() => {
+                form.setValue({ ...form.value, [field]: null });
+                setLinkageLabels((current) => {
+                  const next = { ...current };
+                  delete next[field];
+                  return next;
+                });
+              }}
+            >
+              Clear
+            </button>
+          )}
+        </div>
+      </label>
+    );
   };
 
   const toggleBasis = (flag: TariffBasisFlag): void => {
@@ -398,6 +495,25 @@ export function SocietyParametersScreen(): React.ReactElement {
       </div>
 
       <div className="form-section">
+        <h3>Account Linkages (SP-012)</h3>
+        <div className="form-grid">
+          {linkageButton('shareCapitalGroupId', 'GROUP', 'Share Capital Group')}
+          {linkageButton('shareCapitalSubgroupId', 'SUBGROUP', 'Share Capital Subgroup')}
+          {linkageButton('cashBankGroupId', 'GROUP', 'Cash-Bank Group')}
+          {linkageButton('bankSubgroupId', 'SUBGROUP', 'Bank Subgroup')}
+          {linkageButton('cashSubgroupId', 'SUBGROUP', 'Cash Subgroup')}
+          {linkageButton('memberSubgroupId', 'SUBGROUP', 'Member Subgroup')}
+          {linkageButton('tenantSubgroupId', 'SUBGROUP', 'Tenant Subgroup')}
+          {linkageButton('incomeExpenseSubgroupId', 'SUBGROUP', 'Income &amp; Expense Subgroup')}
+          {linkageButton('interestAccountId', 'ACCOUNT', 'Interest Account')}
+          {linkageButton('adjustmentAccountId', 'ACCOUNT', 'Adjustment Account')}
+          {linkageButton('nonOccupancyAccountId', 'ACCOUNT', 'Non-Occupancy Account')}
+          {linkageButton('serviceTaxAccountId', 'ACCOUNT', 'Service Tax Account')}
+          {linkageButton('educationCessAccountId', 'ACCOUNT', 'Education Cess Account')}
+        </div>
+      </div>
+
+      <div className="form-section">
         <h3>Bill Numbering &amp; Signatories</h3>
         <div className="form-grid">
           <label>
@@ -514,6 +630,14 @@ export function SocietyParametersScreen(): React.ReactElement {
         html="<p>Society parameters print preview</p>"
         onClose={() => setPrintOpen(false)}
         onPrint={() => setPrintOpen(false)}
+      />
+
+      <AccountPickerModal
+        open={pickerOpen}
+        title={pickerTitle}
+        kind={pickerKind}
+        onClose={() => setPickerOpen(false)}
+        onSelect={handlePickerSelect}
       />
     </section>
   );

@@ -68,6 +68,60 @@ export const IpcChannels = {
   SOCIETY_UPDATE_REPORT_FORMATS: 'society:updateReportFormats',
   SOCIETY_LIST_REPORT_TEMPLATES: 'society:listReportTemplates',
   SOCIETY_GET_INTEREST_HELP: 'society:getInterestHelpText',
+  COA_GET_TREE: 'coa:getTree',
+  COA_LIST_GROUPS: 'coa:listGroups',
+  COA_SAVE_GROUP: 'coa:saveGroup',
+  COA_LIST_SUBGROUPS: 'coa:listSubgroups',
+  COA_SAVE_SUBGROUP: 'coa:saveSubgroup',
+  COA_LIST_ACCOUNTS: 'coa:listAccounts',
+  COA_GET_ACCOUNT: 'coa:getAccount',
+  COA_SAVE_ACCOUNT: 'coa:saveAccount',
+  COA_ARCHIVE_ACCOUNT: 'coa:archiveAccount',
+  COA_SEARCH_FOR_PICKER: 'coa:searchForPicker',
+  COA_SEARCH_MEMBERS: 'coa:searchMembers',
+  COA_SEARCH_BANKS: 'coa:searchBanks',
+  BUILDING_LIST: 'building:list',
+  BUILDING_GET: 'building:get',
+  BUILDING_SAVE: 'building:save',
+  BUILDING_DELETE: 'building:delete',
+  WING_LIST: 'wing:list',
+  WING_SAVE: 'wing:save',
+  WING_DELETE: 'wing:delete',
+  UNIT_LIST: 'unit:list',
+  UNIT_GET: 'unit:get',
+  UNIT_SAVE: 'unit:save',
+  UNIT_ARCHIVE: 'unit:archive',
+  UNIT_VALIDATE_NO: 'unit:validateUnitNo',
+  REFERENCE_MASTER_LIST: 'referenceMaster:list',
+  REFERENCE_MASTER_SAVE: 'referenceMaster:save',
+  PARKING_LIST_TARIFF_TYPES: 'parking:listTariffTypes',
+  PARKING_SAVE_TARIFF_TYPE: 'parking:saveTariffType',
+  PARKING_ADD_TARIFF_RATE: 'parking:addTariffRate',
+  PARKING_LIST_TARIFF_RATES: 'parking:listTariffRates',
+  PARKING_LIST_SPACES: 'parking:listSpaces',
+  PARKING_SAVE_SPACE: 'parking:saveSpace',
+  PARKING_LIST_ASSIGNMENTS: 'parking:listAssignments',
+  PARKING_SAVE_ASSIGNMENT: 'parking:saveAssignment',
+  PARKING_CALCULATE_FOR_BILL: 'parking:calculateForBill',
+  MEMBER_LIST: 'member:list',
+  MEMBER_GET: 'member:get',
+  MEMBER_SAVE_IDENTIFICATION: 'member:saveIdentification',
+  MEMBER_SAVE_PERSONAL: 'member:savePersonal',
+  MEMBER_SAVE_ADDRESS: 'member:saveAddress',
+  MEMBER_SAVE_DEPENDENTS: 'member:saveDependents',
+  MEMBER_SAVE_NOMINEES: 'member:saveNominees',
+  MEMBER_SAVE_VEHICLES: 'member:saveVehicles',
+  MEMBER_SAVE_SHARES: 'member:saveShares',
+  MEMBER_SAVE_HOUSING_LOANS: 'member:saveHousingLoans',
+  MEMBER_DISPOSE: 'member:dispose',
+  MEMBER_CHECK_UNIT_VACANCY: 'member:checkUnitVacancy',
+  MEMBER_SAVE_OPENING_BALANCE: 'member:saveOpeningBalance',
+  MEMBER_UPLOAD_PHOTO: 'member:uploadPhoto',
+  TENANT_LIST: 'tenant:list',
+  TENANT_GET_HISTORY: 'tenant:getHistory',
+  TENANT_SAVE: 'tenant:save',
+  TENANT_ARCHIVE: 'tenant:archive',
+  TENANT_VALIDATE_FOR_OCCUPANCY: 'tenant:validateForOccupancy',
 } as const;
 
 export type IpcChannel = (typeof IpcChannels)[keyof typeof IpcChannels] | string;
@@ -485,4 +539,464 @@ export interface AppConfigDto {
   recentDatabases: RecentDatabaseEntry[];
   windowBounds?: { x: number; y: number; width: number; height: number };
   explorerExpandedNodes: string[];
+}
+
+/** SDD §30.1 — Chart of Accounts enums */
+export enum AccountCategoryType {
+  ASSET = 'ASSET',
+  LIABILITY = 'LIABILITY',
+  INCOME = 'INCOME',
+  EXPENSE = 'EXPENSE',
+}
+
+export enum AccountNature {
+  DEBIT = 'DEBIT',
+  CREDIT = 'CREDIT',
+}
+
+export type CoaNodeType = 'CATEGORY' | 'GROUP' | 'SUBGROUP' | 'ACCOUNT';
+
+export interface CoaTreeNode {
+  id: string;
+  nodeType: CoaNodeType;
+  label: string;
+  categoryId?: AccountCategoryType;
+  groupId?: string;
+  subgroupId?: string;
+  isActive?: boolean;
+  isArchived?: boolean;
+  pettyCash?: boolean;
+  children?: CoaTreeNode[];
+}
+
+export interface AccountGroupDto extends AuditFieldsDto {
+  id: string;
+  categoryId: AccountCategoryType;
+  groupName: string;
+  balanceSheetSr: number;
+  nature: AccountNature;
+  substituteGroupName: string | null;
+}
+
+export interface AccountSubgroupDto extends AuditFieldsDto {
+  id: string;
+  groupId: string;
+  subgroupName: string;
+  subgroupSr: number;
+  substituteSubgroupName: string | null;
+}
+
+export interface AccountMasterDto extends AuditFieldsDto {
+  id: string;
+  subgroupId: string;
+  particulars: string;
+  openingBalanceDr: number;
+  openingBalanceCr: number;
+  previousYearAmount: number;
+  estimateAmount: number;
+  shortCode: string | null;
+  serviceTaxApplicable: boolean;
+  rebateApplicable: boolean;
+  interestFree: boolean;
+  pettyCash: boolean;
+  isActive: boolean;
+  isArchived: boolean;
+  memberSubsidiaryId: string | null;
+}
+
+export interface AccountMasterDetailDto extends AccountMasterDto {
+  categoryId: AccountCategoryType;
+  categoryName: string;
+  groupId: string;
+  groupName: string;
+  subgroupName: string;
+  closingBalanceDr: number;
+  closingBalanceCr: number;
+}
+
+export type AccountMasterSaveDto = Omit<
+  AccountMasterDto,
+  keyof AuditFieldsDto | 'isArchived' | 'memberSubsidiaryId'
+> & { id?: string };
+
+export interface ArchiveAccountResult {
+  archived: boolean;
+  blockReason?: string;
+}
+
+export type CoaPickerKind = 'GROUP' | 'SUBGROUP' | 'ACCOUNT' | 'MEMBER' | 'BANK';
+
+export interface AccountPickerItem {
+  id: string;
+  particulars: string;
+  shortCode: string | null;
+  subgroupName: string;
+  groupName: string;
+  categoryName: string;
+  label: string;
+}
+
+export enum UnitStatus {
+  OCCUPIED = 'OCCUPIED',
+  VACANT = 'VACANT',
+  ARCHIVED = 'ARCHIVED',
+}
+
+export type ReferenceMasterType = 'UNIT_AREA' | 'UNIT_TYPE' | 'COMPOSITION' | 'FLOOR';
+
+export interface BuildingDto extends AuditFieldsDto {
+  id: string;
+  financialYearId: string;
+  shortName: string;
+  fullName: string;
+  totalUnits: number;
+  numberOfFloors: number;
+}
+
+export interface WingDto extends AuditFieldsDto {
+  id: string;
+  buildingId: string;
+  shortName: string;
+  fullName: string;
+}
+
+export interface UnitAreaDto extends AuditFieldsDto {
+  id: string;
+  areaSqFt: number;
+  description: string | null;
+  isActive: boolean;
+}
+
+export interface UnitTypeDto extends AuditFieldsDto {
+  id: string;
+  typeName: string;
+  isActive: boolean;
+}
+
+export interface UnitCompositionDto extends AuditFieldsDto {
+  id: string;
+  compositionName: string;
+  isActive: boolean;
+}
+
+export interface FloorMasterDto extends AuditFieldsDto {
+  id: string;
+  srNo: number;
+  floorName: string;
+  isActive: boolean;
+}
+
+export interface UnitDto extends AuditFieldsDto {
+  id: string;
+  buildingId: string;
+  wingId: string;
+  unitNo: string;
+  floorMasterId: string | null;
+  unitTypeId: string | null;
+  unitCompositionId: string | null;
+  unitAreaId: string | null;
+  carpetAreaSqFt: number | null;
+  residentialAreaSqFt: number | null;
+  commercialAreaSqFt: number | null;
+  residentialRateableValue: number | null;
+  commercialRateableValue: number | null;
+  serialNo: number;
+  status: UnitStatus;
+  constructionValue: number | null;
+  landValue: number | null;
+}
+
+export interface UnitDetailDto extends UnitDto {
+  buildingShortName: string;
+  wingShortName: string;
+  floorName: string | null;
+  unitTypeName: string | null;
+  compositionName: string | null;
+  areaSqFt: number | null;
+}
+
+export type UnitSaveDto = Omit<UnitDto, keyof AuditFieldsDto | 'serialNo'> & { id?: string };
+
+export interface ParkingTariffTypeDto extends AuditFieldsDto {
+  id: string;
+  typeName: string;
+  isActive: boolean;
+}
+
+export interface ParkingTariffRateDto extends AuditFieldsDto {
+  id: string;
+  parkingTariffTypeId: string;
+  effectiveDate: string;
+  monthlyRate: number;
+}
+
+export interface ParkingSpaceDto extends AuditFieldsDto {
+  id: string;
+  parkingNo: string;
+  parkingTariffTypeId: string;
+  chargeAccountId: string;
+  isActive: boolean;
+}
+
+export interface MemberParkingAssignmentDto extends AuditFieldsDto {
+  id: string;
+  memberId: string;
+  parkingSpaceId: string;
+  parkingNo?: string;
+  purchaseDate: string;
+  disposeDate: string | null;
+  isActive: boolean;
+}
+
+export interface ParkingChargeLineDto {
+  accountMasterId: string;
+  chargeName: string;
+  parkingNo: string;
+  amount: number;
+}
+
+export interface DeleteGuardResult {
+  deleted: boolean;
+  blockReason?: string;
+}
+
+export enum MemberGender {
+  MALE = 'MALE',
+  FEMALE = 'FEMALE',
+  OTHER = 'OTHER',
+}
+
+export enum MaritalStatus {
+  SINGLE = 'SINGLE',
+  MARRIED = 'MARRIED',
+  WIDOWED = 'WIDOWED',
+  DIVORCED = 'DIVORCED',
+}
+
+export enum OpeningBalanceType {
+  REGULAR = 'REGULAR',
+  SUPPLEMENTARY = 'SUPPLEMENTARY',
+}
+
+export interface MemberDto extends AuditFieldsDto {
+  id: string;
+  unitId: string;
+  title: string | null;
+  memberName: string;
+  tenantOccupancy: boolean;
+  tenantOccupancyEffectiveFrom: string | null;
+  generateRegularBills: boolean;
+  generateSupplementaryBills: boolean;
+  chargeInterest: boolean;
+  disposedAt: string | null;
+  disposeReason: string | null;
+  photographPath: string | null;
+  gender: MemberGender | null;
+  dateOfBirth: string | null;
+  qualification: string | null;
+  religion: string | null;
+  occupation: string | null;
+  panNo: string | null;
+  bloodGroup: string | null;
+  maritalStatus: MaritalStatus | null;
+  anniversaryType: string | null;
+  anniversaryDate: string | null;
+  unitPurchaseDate: string | null;
+  dateOfSale: string | null;
+  associateMember: string | null;
+  jointMember: string | null;
+  votingRightsMember: string | null;
+  memberBankName: string | null;
+  memberBankBranch: string | null;
+  totalFamilyMembers: number | null;
+  memberClass: string | null;
+  clubMembershipDeposit: number | null;
+  address: string | null;
+  residencePhone: string | null;
+  officePhone: string | null;
+  emailPrimary: string | null;
+  emailSecondary: string | null;
+  fax: string | null;
+  subsidiaryLedgerAccountId: string | null;
+}
+
+export interface MemberListItemDto {
+  id: string;
+  memberName: string;
+  unitId: string;
+  unitNo: string;
+  buildingShortName: string;
+  wingShortName: string;
+  disposedAt: string | null;
+}
+
+export interface MemberIdentificationDto {
+  id?: string;
+  unitId: string;
+  title?: string | null;
+  memberName: string;
+  tenantOccupancy?: boolean;
+  tenantOccupancyEffectiveFrom?: string | null;
+  generateRegularBills?: boolean;
+  generateSupplementaryBills?: boolean;
+  chargeInterest?: boolean;
+  unitPurchaseDate?: string | null;
+}
+
+export interface MemberPersonalDto {
+  id: string;
+  photographPath?: string | null;
+  gender?: MemberGender | null;
+  dateOfBirth?: string | null;
+  qualification?: string | null;
+  religion?: string | null;
+  occupation?: string | null;
+  panNo?: string | null;
+  bloodGroup?: string | null;
+  maritalStatus?: MaritalStatus | null;
+  anniversaryType?: string | null;
+  anniversaryDate?: string | null;
+  associateMember?: string | null;
+  jointMember?: string | null;
+  votingRightsMember?: string | null;
+  memberBankName?: string | null;
+  memberBankBranch?: string | null;
+  totalFamilyMembers?: number | null;
+  memberClass?: string | null;
+  clubMembershipDeposit?: number | null;
+}
+
+export interface MemberAddressDto {
+  id: string;
+  address?: string | null;
+  residencePhone?: string | null;
+  officePhone?: string | null;
+  emailPrimary?: string | null;
+  emailSecondary?: string | null;
+  fax?: string | null;
+}
+
+export interface MemberDependentDto extends AuditFieldsDto {
+  id: string;
+  memberId: string;
+  name: string;
+  relation: string | null;
+  occupation: string | null;
+  age: number | null;
+  gender: MemberGender | null;
+  dateOfBirth: string | null;
+  idCardNo: string | null;
+  bloodGroup: string | null;
+}
+
+export interface MemberNomineeDto extends AuditFieldsDto {
+  id: string;
+  memberId: string;
+  nominationDate: string | null;
+  nomineeName: string;
+  committeeMeetingDate: string | null;
+  subject: string | null;
+  revocationDate: string | null;
+  remark: string | null;
+}
+
+export interface MemberVehicleDto extends AuditFieldsDto {
+  id: string;
+  memberId: string;
+  vehicleName: string | null;
+  vehicleNo: string | null;
+  registrationNo: string | null;
+  registrationDate: string | null;
+}
+
+export interface MemberShareDto extends AuditFieldsDto {
+  id: string;
+  memberId: string;
+  allotmentDate: string | null;
+  certificateNo: string | null;
+  folioNo: string | null;
+  numberOfShares: number | null;
+  fromShareNo: string | null;
+  toShareNo: string | null;
+}
+
+export interface MemberHousingLoanDto extends AuditFieldsDto {
+  id: string;
+  memberId: string;
+  bankName: string | null;
+  branchName: string | null;
+  nocDate: string | null;
+  loanAmount: number | null;
+  remark: string | null;
+}
+
+export interface MemberOpeningBalanceDto extends AuditFieldsDto {
+  id: string;
+  memberId: string;
+  balanceType: OpeningBalanceType;
+  principalOB: number;
+  interestOB: number;
+  serviceTaxOB: number;
+  ledgerVoucherId: string | null;
+}
+
+export interface MemberFullDto extends MemberDto {
+  buildingId: string;
+  wingId: string;
+  unitNo: string;
+  buildingShortName: string;
+  wingShortName: string;
+  dependents: MemberDependentDto[];
+  nominees: MemberNomineeDto[];
+  vehicles: MemberVehicleDto[];
+  shares: MemberShareDto[];
+  housingLoans: MemberHousingLoanDto[];
+  openingBalances: MemberOpeningBalanceDto[];
+  parkingAssignments: MemberParkingAssignmentDto[];
+}
+
+export interface UnitVacancyResult {
+  vacant: boolean;
+  currentMember?: { id: string; memberName: string };
+}
+
+export interface MemberOpeningBalanceSaveDto {
+  memberId: string;
+  balanceType: OpeningBalanceType;
+  principalOB: number;
+  interestOB: number;
+  serviceTaxOB?: number;
+  acknowledgeReconciliation?: boolean;
+}
+
+export interface MemberOpeningBalanceResult {
+  ob: MemberOpeningBalanceDto;
+  ledgerVoucherId: string | null;
+  reconciliationWarning?: string;
+}
+
+export interface TenantDto extends AuditFieldsDto {
+  id: string;
+  unitId: string;
+  tenantName: string;
+  phone: string | null;
+  email: string | null;
+  licenseAgreementDate: string;
+  licenseExpiryDate: string;
+  monthlyRent: number | null;
+  isActive: boolean;
+  archivedAt: string | null;
+  unitNo?: string;
+  buildingShortName?: string;
+  wingShortName?: string;
+}
+
+export type TenantSaveDto = Omit<
+  TenantDto,
+  keyof AuditFieldsDto | 'archivedAt' | 'unitNo' | 'buildingShortName' | 'wingShortName'
+> & { id?: string };
+
+export interface TenantOccupancyResult {
+  hasActiveTenant: boolean;
+  tenant?: { id: string; tenantName: string };
 }

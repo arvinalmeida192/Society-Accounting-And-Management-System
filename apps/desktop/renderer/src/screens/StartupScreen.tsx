@@ -2,9 +2,11 @@ import { useEffect, useState } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import type { RecentDatabaseEntry } from '@sams/shared-types';
 import { getIpcErrorMessage } from '../hooks/session';
+import { useSession } from '../hooks/SessionContext';
 
 export function StartupScreen(): React.ReactElement {
   const navigate = useNavigate();
+  const { refreshSession } = useSession();
   const [recent, setRecent] = useState<RecentDatabaseEntry[]>([]);
   const [error, setError] = useState<string | null>(null);
   const [busy, setBusy] = useState(false);
@@ -46,6 +48,7 @@ export function StartupScreen(): React.ReactElement {
         return;
       }
 
+      await refreshSession();
       navigate('/login');
     } finally {
       setBusy(false);

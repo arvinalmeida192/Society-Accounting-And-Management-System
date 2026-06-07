@@ -2,10 +2,10 @@ import { Navigate, Route, Routes, useNavigate } from 'react-router-dom';
 import type { SessionDto } from '@sams/shared-types';
 import { ExplorerTree } from '../components/ExplorerTree';
 import { useTabStore } from '../store/tabStore';
+import { useSession } from '../hooks/SessionContext';
 
 interface MainShellProps {
   session: SessionDto;
-  onSessionChange?: () => void;
 }
 
 function HomePane({ session }: { session: SessionDto }): React.ReactElement {
@@ -18,13 +18,24 @@ function HomePane({ session }: { session: SessionDto }): React.ReactElement {
         <strong>{session.fyLabel}</strong>.
       </p>
       <p className="muted">
-        Society setup is available under Explorer → Society Setup. Accounting, billing, and reports
-        arrive in later phases.
+        Society setup is under Explorer → Society Setup. Chart of Accounts is under Explorer →
+        Accounting. Buildings, wings, units, and parking are under Explorer → Property. Members and
+        tenants are under Explorer → Members.
       </p>
     </section>
   );
 }
 
+import { ChartOfAccountsScreen } from './accounting/ChartOfAccountsScreen';
+import { BuildingsScreen } from './property/BuildingsScreen';
+import { ParkingAssignmentsScreen } from './property/ParkingAssignmentsScreen';
+import { ParkingSpacesScreen } from './property/ParkingSpacesScreen';
+import { ParkingTariffsScreen } from './property/ParkingTariffsScreen';
+import { ReferenceMastersScreen } from './property/ReferenceMastersScreen';
+import { UnitsScreen } from './property/UnitsScreen';
+import { WingsScreen } from './property/WingsScreen';
+import { MembersRegisterScreen } from './members/MembersRegisterScreen';
+import { TenantsScreen } from './members/TenantsScreen';
 import { SocietyIdentityScreen } from './society/SocietyIdentityScreen';
 import { SocietyParametersScreen } from './society/SocietyParametersScreen';
 import { PropertyInformationScreen } from './society/PropertyInformationScreen';
@@ -39,7 +50,7 @@ function PlaceholderPane({ title }: { title: string }): React.ReactElement {
   );
 }
 
-export function MainShell({ session, onSessionChange }: MainShellProps): React.ReactElement {
+export function MainShell({ session }: MainShellProps): React.ReactElement {
   const navigate = useNavigate();
   const tabs = useTabStore((state) => state.tabs);
   const activeTabId = useTabStore((state) => state.activeTabId);
@@ -47,6 +58,7 @@ export function MainShell({ session, onSessionChange }: MainShellProps): React.R
   const closeTab = useTabStore((state) => state.closeTab);
   const setActiveTab = useTabStore((state) => state.setActiveTab);
   const toggleExplorer = useTabStore((state) => state.toggleExplorer);
+  const { refreshSession } = useSession();
 
   const activeTab = tabs.find((tab) => tab.id === activeTabId) ?? tabs[0];
 
@@ -57,7 +69,7 @@ export function MainShell({ session, onSessionChange }: MainShellProps): React.R
 
   const logout = async (): Promise<void> => {
     await window.sams.auth.logout();
-    onSessionChange?.();
+    await refreshSession();
     navigate('/login');
   };
 
@@ -114,7 +126,16 @@ export function MainShell({ session, onSessionChange }: MainShellProps): React.R
             <Route path="setup/parameters" element={<SocietyParametersScreen />} />
             <Route path="setup/property" element={<PropertyInformationScreen />} />
             <Route path="setup/report-formats" element={<ReportFormatsScreen />} />
-            <Route path="property/buildings" element={<PlaceholderPane title="Buildings" />} />
+            <Route path="accounting/chart-of-accounts" element={<ChartOfAccountsScreen />} />
+            <Route path="property/buildings" element={<BuildingsScreen />} />
+            <Route path="property/wings" element={<WingsScreen />} />
+            <Route path="property/reference-masters" element={<ReferenceMastersScreen />} />
+            <Route path="property/units" element={<UnitsScreen />} />
+            <Route path="property/parking-tariffs" element={<ParkingTariffsScreen />} />
+            <Route path="property/parking-spaces" element={<ParkingSpacesScreen />} />
+            <Route path="property/parking-assignments" element={<ParkingAssignmentsScreen />} />
+            <Route path="members/register" element={<MembersRegisterScreen />} />
+            <Route path="members/tenants" element={<TenantsScreen />} />
             <Route path="reports" element={<PlaceholderPane title="Reports" />} />
             <Route path="*" element={<Navigate to="home" replace />} />
           </Routes>

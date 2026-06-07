@@ -1,4 +1,4 @@
-// SAMS Database Schema — Phases 1–3
+// SAMS Database Schema — Phases 1–6
 
 generator client {
   provider = "prisma-client-js"
@@ -92,6 +92,54 @@ enum ReportType {
 enum PageSize {
   A4
   LEGAL
+}
+
+enum AccountCategoryType {
+  ASSET
+  LIABILITY
+  INCOME
+  EXPENSE
+}
+
+enum AccountNature {
+  DEBIT
+  CREDIT
+}
+
+enum VoucherStatus {
+  POSTED
+  CANCELLED
+}
+
+enum UnitStatus {
+  OCCUPIED
+  VACANT
+  ARCHIVED
+}
+
+enum ReferenceMasterType {
+  UNIT_AREA
+  UNIT_TYPE
+  COMPOSITION
+  FLOOR
+}
+
+enum MemberGender {
+  MALE
+  FEMALE
+  OTHER
+}
+
+enum MaritalStatus {
+  SINGLE
+  MARRIED
+  WIDOWED
+  DIVORCED
+}
+
+enum OpeningBalanceType {
+  REGULAR
+  SUPPLEMENTARY
 }
 
 model SystemMeta {
@@ -192,6 +240,8 @@ model FinancialYear {
   societyIdentityId  String
   societyIdentity    SocietyIdentity @relation(fields: [societyIdentityId], references: [id])
   billingPeriods     BillingPeriodCalendar[]
+  vouchers           Voucher[]
+  buildings          Building[]
   createdAt          DateTime        @default(now())
   createdBy          String
   updatedAt          DateTime        @updatedAt
@@ -338,4 +388,501 @@ model BillingPeriodCalendar {
 
   @@unique([financialYearId, periodKey])
   @@map("billing_period_calendar")
+}
+
+model AccountCategory {
+  id        AccountCategoryType @id
+  name      String
+  sortOrder Int
+  groups    AccountGroup[]
+
+  @@map("account_categories")
+}
+
+model AccountGroup {
+  id                  String              @id @default(cuid())
+  categoryId          AccountCategoryType
+  category            AccountCategory     @relation(fields: [categoryId], references: [id])
+  groupName           String
+  balanceSheetSr      Int
+  nature              AccountNature
+  substituteGroupName String?
+  subgroups           AccountSubgroup[]
+  createdAt           DateTime            @default(now())
+  createdBy           String
+  updatedAt           DateTime            @updatedAt
+  updatedBy           String
+
+  @@unique([categoryId, groupName])
+  @@map("account_groups")
+}
+
+model AccountSubgroup {
+  id                     String          @id @default(cuid())
+  groupId                String
+  group                  AccountGroup    @relation(fields: [groupId], references: [id])
+  subgroupName           String
+  subgroupSr             Int
+  substituteSubgroupName String?
+  accounts               AccountMaster[]
+  createdAt              DateTime        @default(now())
+  createdBy              String
+  updatedAt              DateTime        @updatedAt
+  updatedBy              String
+
+  @@unique([groupId, subgroupName])
+  @@map("account_subgroups")
+}
+
+model AccountMaster {
+  id                   String          @id @default(cuid())
+  subgroupId           String
+  subgroup             AccountSubgroup @relation(fields: [subgroupId], references: [id])
+  particulars          String
+  openingBalanceDr     Decimal         @default(0)
+  openingBalanceCr     Decimal         @default(0)
+  previousYearAmount   Decimal         @default(0)
+  estimateAmount       Decimal         @default(0)
+  shortCode            String?         @unique
+  serviceTaxApplicable Boolean         @default(false)
+  rebateApplicable     Boolean         @default(false)
+  interestFree         Boolean         @default(false)
+  pettyCash            Boolean         @default(false)
+  isActive             Boolean         @default(true)
+  isArchived           Boolean         @default(false)
+  archivedAt           DateTime?
+  archivedBy           String?
+  memberSubsidiaryId   String?         @unique
+  memberSubsidiary     Member?         @relation("MemberSubsidiaryLedger", fields: [memberSubsidiaryId], references: [id])
+  voucherLines         VoucherLine[]
+  parkingSpaces        ParkingSpace[]
+  createdAt            DateTime        @default(now())
+  createdBy            String
+  updatedAt            DateTime        @updatedAt
+  updatedBy            String
+
+  @@map("account_masters")
+}
+
+/** Minimal voucher shell for ledger balance and archive guards — expanded in Phase 11 */
+model Voucher {
+  id                    String                 @id @default(cuid())
+  financialYearId       String
+  financialYear         FinancialYear          @relation(fields: [financialYearId], references: [id])
+  status                VoucherStatus          @default(POSTED)
+  voucherDate           DateTime
+  lines                 VoucherLine[]
+  memberOpeningBalances MemberOpeningBalance[]
+  createdAt             DateTime               @default(now())
+  createdBy             String
+  updatedAt             DateTime               @updatedAt
+  updatedBy             String
+
+  @@map("vouchers")
+}
+
+model VoucherLine {
+  id              String        @id @default(cuid())
+  voucherId       String
+  voucher         Voucher       @relation(fields: [voucherId], references: [id], onDelete: Cascade)
+  lineNo          Int
+  accountMasterId String
+  accountMaster   AccountMaster @relation(fields: [accountMasterId], references: [id])
+  memberId        String?
+  member          Member?       @relation(fields: [memberId], references: [id])
+  drAmount        Decimal       @default(0)
+  crAmount        Decimal       @default(0)
+  particulars     String?
+  createdAt       DateTime      @default(now())
+  createdBy       String
+  updatedAt       DateTime      @updatedAt
+  updatedBy       String
+
+  @@unique([voucherId, lineNo])
+  @@index([accountMasterId])
+  @@map("voucher_lines")
+}
+
+model Building {
+  id              String        @id @default(cuid())
+  financialYearId String
+  financialYear   FinancialYear @relation(fields: [financialYearId], references: [id])
+  shortName       String
+  fullName        String
+  totalUnits      Int           @default(0)
+  numberOfFloors  Int           @default(0)
+  deletedAt       DateTime?
+  deletedById     String?
+  wings           Wing[]
+  units           Unit[]
+  createdAt       DateTime      @default(now())
+  createdBy       String
+  updatedAt       DateTime      @updatedAt
+  updatedBy       String
+
+  @@unique([shortName])
+  @@map("buildings")
+}
+
+model Wing {
+  id         String    @id @default(cuid())
+  buildingId String
+  building   Building  @relation(fields: [buildingId], references: [id])
+  shortName  String
+  fullName   String
+  deletedAt  DateTime?
+  deletedById String?
+  units      Unit[]
+  createdAt  DateTime  @default(now())
+  createdBy  String
+  updatedAt  DateTime  @updatedAt
+  updatedBy  String
+
+  @@unique([buildingId, shortName])
+  @@map("wings")
+}
+
+model UnitArea {
+  id          String  @id @default(cuid())
+  areaSqFt    Decimal
+  description String?
+  isActive    Boolean @default(true)
+  units       Unit[]
+  createdAt   DateTime @default(now())
+  createdBy   String
+  updatedAt   DateTime @updatedAt
+  updatedBy   String
+
+  @@map("unit_areas")
+}
+
+model UnitType {
+  id        String  @id @default(cuid())
+  typeName  String  @unique
+  isActive  Boolean @default(true)
+  units     Unit[]
+  createdAt DateTime @default(now())
+  createdBy String
+  updatedAt DateTime @updatedAt
+  updatedBy String
+
+  @@map("unit_types")
+}
+
+model UnitComposition {
+  id              String  @id @default(cuid())
+  compositionName String  @unique
+  isActive        Boolean @default(true)
+  units           Unit[]
+  createdAt       DateTime @default(now())
+  createdBy       String
+  updatedAt       DateTime @updatedAt
+  updatedBy       String
+
+  @@map("unit_compositions")
+}
+
+model FloorMaster {
+  id        String  @id @default(cuid())
+  srNo      Int
+  floorName String
+  isActive  Boolean @default(true)
+  units     Unit[]
+  createdAt DateTime @default(now())
+  createdBy String
+  updatedAt DateTime @updatedAt
+  updatedBy String
+
+  @@unique([srNo])
+  @@map("floor_masters")
+}
+
+model Unit {
+  id                       String           @id @default(cuid())
+  buildingId               String
+  building                 Building         @relation(fields: [buildingId], references: [id])
+  wingId                   String
+  wing                     Wing             @relation(fields: [wingId], references: [id])
+  unitNo                   String
+  floorMasterId            String?
+  floorMaster              FloorMaster?     @relation(fields: [floorMasterId], references: [id])
+  unitTypeId               String?
+  unitType                 UnitType?        @relation(fields: [unitTypeId], references: [id])
+  unitCompositionId        String?
+  unitComposition          UnitComposition? @relation(fields: [unitCompositionId], references: [id])
+  unitAreaId               String?
+  unitArea                 UnitArea?        @relation(fields: [unitAreaId], references: [id])
+  carpetAreaSqFt           Decimal?
+  residentialAreaSqFt      Decimal?
+  commercialAreaSqFt       Decimal?
+  residentialRateableValue Decimal?
+  commercialRateableValue Decimal?
+  serialNo                 Int
+  status                   UnitStatus       @default(VACANT)
+  constructionValue        Decimal?
+  landValue                Decimal?
+  deletedAt                DateTime?
+  deletedById              String?
+  members                  Member[]
+  tenants                  Tenant[]
+  createdAt                DateTime         @default(now())
+  createdBy                String
+  updatedAt                DateTime         @updatedAt
+  updatedBy                String
+
+  @@unique([buildingId, wingId, unitNo])
+  @@index([serialNo])
+  @@map("units")
+}
+
+model ParkingTariffType {
+  id        String              @id @default(cuid())
+  typeName  String              @unique
+  isActive  Boolean             @default(true)
+  rates     ParkingTariffRate[]
+  spaces    ParkingSpace[]
+  createdAt DateTime            @default(now())
+  createdBy String
+  updatedAt DateTime            @updatedAt
+  updatedBy String
+
+  @@map("parking_tariff_types")
+}
+
+model ParkingTariffRate {
+  id                  String            @id @default(cuid())
+  parkingTariffTypeId String
+  parkingTariffType   ParkingTariffType @relation(fields: [parkingTariffTypeId], references: [id], onDelete: Cascade)
+  effectiveDate       DateTime
+  monthlyRate         Decimal
+  createdAt           DateTime          @default(now())
+  createdBy           String
+  updatedAt           DateTime          @updatedAt
+  updatedBy           String
+
+  @@unique([parkingTariffTypeId, effectiveDate])
+  @@map("parking_tariff_rates")
+}
+
+model ParkingSpace {
+  id                  String            @id @default(cuid())
+  parkingNo           String            @unique
+  parkingTariffTypeId String
+  parkingTariffType   ParkingTariffType @relation(fields: [parkingTariffTypeId], references: [id])
+  chargeAccountId     String
+  chargeAccount       AccountMaster     @relation(fields: [chargeAccountId], references: [id])
+  isActive            Boolean           @default(true)
+  assignments         MemberParkingAssignment[]
+  createdAt           DateTime          @default(now())
+  createdBy           String
+  updatedAt           DateTime          @updatedAt
+  updatedBy           String
+
+  @@map("parking_spaces")
+}
+
+model Member {
+  id                           String    @id @default(cuid())
+  unitId                       String
+  unit                         Unit      @relation(fields: [unitId], references: [id])
+  title                        String?
+  memberName                   String
+  tenantOccupancy              Boolean   @default(false)
+  tenantOccupancyEffectiveFrom DateTime?
+  generateRegularBills         Boolean   @default(true)
+  generateSupplementaryBills   Boolean   @default(true)
+  chargeInterest               Boolean   @default(true)
+  disposedAt                   DateTime?
+  disposeReason                String?
+  photographPath               String?
+  gender                       MemberGender?
+  dateOfBirth                  DateTime?
+  qualification                String?
+  religion                     String?
+  occupation                   String?
+  panNo                        String?
+  bloodGroup                   String?
+  maritalStatus                MaritalStatus?
+  anniversaryType              String?
+  anniversaryDate              DateTime?
+  unitPurchaseDate             DateTime?
+  dateOfSale                   DateTime?
+  associateMember              String?
+  jointMember                  String?
+  votingRightsMember           String?
+  memberBankName               String?
+  memberBankBranch             String?
+  totalFamilyMembers           Int?
+  memberClass                  String?
+  clubMembershipDeposit        Decimal?
+  address                      String?
+  residencePhone               String?
+  officePhone                  String?
+  emailPrimary                 String?
+  emailSecondary               String?
+  fax                          String?
+  subsidiaryLedger             AccountMaster? @relation("MemberSubsidiaryLedger")
+  dependents                   MemberDependent[]
+  nominees                     MemberNominee[]
+  vehicles                     MemberVehicle[]
+  shares                       MemberShare[]
+  housingLoans                 MemberHousingLoan[]
+  openingBalances              MemberOpeningBalance[]
+  parkingAssignments           MemberParkingAssignment[]
+  voucherLines                 VoucherLine[]
+  createdAt                    DateTime  @default(now())
+  createdBy                    String
+  updatedAt                    DateTime  @updatedAt
+  updatedBy                    String
+
+  @@index([unitId])
+  @@index([disposedAt])
+  @@map("members")
+}
+
+model MemberDependent {
+  id          String        @id @default(cuid())
+  memberId    String
+  member      Member        @relation(fields: [memberId], references: [id], onDelete: Cascade)
+  name        String
+  relation    String?
+  occupation  String?
+  age         Int?
+  gender      MemberGender?
+  dateOfBirth DateTime?
+  idCardNo    String?
+  bloodGroup  String?
+  createdAt   DateTime      @default(now())
+  createdBy   String
+  updatedAt   DateTime      @updatedAt
+  updatedBy   String
+
+  @@map("member_dependents")
+}
+
+model MemberNominee {
+  id                   String    @id @default(cuid())
+  memberId             String
+  member               Member    @relation(fields: [memberId], references: [id], onDelete: Cascade)
+  nominationDate       DateTime?
+  nomineeName          String
+  committeeMeetingDate DateTime?
+  subject              String?
+  revocationDate       DateTime?
+  remark               String?
+  createdAt            DateTime  @default(now())
+  createdBy            String
+  updatedAt            DateTime  @updatedAt
+  updatedBy            String
+
+  @@map("member_nominees")
+}
+
+model MemberVehicle {
+  id               String    @id @default(cuid())
+  memberId         String
+  member           Member    @relation(fields: [memberId], references: [id], onDelete: Cascade)
+  vehicleName      String?
+  vehicleNo        String?
+  registrationNo   String?
+  registrationDate DateTime?
+  createdAt        DateTime  @default(now())
+  createdBy        String
+  updatedAt        DateTime  @updatedAt
+  updatedBy        String
+
+  @@map("member_vehicles")
+}
+
+model MemberShare {
+  id              String    @id @default(cuid())
+  memberId        String
+  member          Member    @relation(fields: [memberId], references: [id], onDelete: Cascade)
+  allotmentDate   DateTime?
+  certificateNo   String?
+  folioNo         String?
+  numberOfShares  Int?
+  fromShareNo     String?
+  toShareNo       String?
+  createdAt       DateTime  @default(now())
+  createdBy       String
+  updatedAt       DateTime  @updatedAt
+  updatedBy       String
+
+  @@map("member_shares")
+}
+
+model MemberHousingLoan {
+  id         String    @id @default(cuid())
+  memberId   String
+  member     Member    @relation(fields: [memberId], references: [id], onDelete: Cascade)
+  bankName   String?
+  branchName String?
+  nocDate    DateTime?
+  loanAmount Decimal?
+  remark     String?
+  createdAt  DateTime  @default(now())
+  createdBy  String
+  updatedAt  DateTime  @updatedAt
+  updatedBy  String
+
+  @@map("member_housing_loans")
+}
+
+model MemberOpeningBalance {
+  id              String             @id @default(cuid())
+  memberId        String
+  member          Member             @relation(fields: [memberId], references: [id], onDelete: Cascade)
+  balanceType     OpeningBalanceType
+  principalOB     Decimal            @default(0)
+  interestOB      Decimal            @default(0)
+  serviceTaxOB    Decimal            @default(0)
+  ledgerVoucherId String?
+  ledgerVoucher   Voucher?           @relation(fields: [ledgerVoucherId], references: [id])
+  createdAt       DateTime           @default(now())
+  createdBy       String
+  updatedAt       DateTime           @updatedAt
+  updatedBy       String
+
+  @@unique([memberId, balanceType])
+  @@map("member_opening_balances")
+}
+
+model Tenant {
+  id                   String    @id @default(cuid())
+  unitId               String
+  unit                 Unit      @relation(fields: [unitId], references: [id])
+  tenantName           String
+  phone                String?
+  email                String?
+  licenseAgreementDate DateTime
+  licenseExpiryDate    DateTime
+  monthlyRent          Decimal?
+  isActive             Boolean   @default(true)
+  archivedAt           DateTime?
+  archivedById         String?
+  createdAt            DateTime  @default(now())
+  createdBy            String
+  updatedAt            DateTime  @updatedAt
+  updatedBy            String
+
+  @@index([unitId, isActive])
+  @@map("tenants")
+}
+
+model MemberParkingAssignment {
+  id             String       @id @default(cuid())
+  memberId       String
+  member         Member       @relation(fields: [memberId], references: [id])
+  parkingSpaceId String
+  parkingSpace   ParkingSpace @relation(fields: [parkingSpaceId], references: [id])
+  purchaseDate   DateTime
+  disposeDate    DateTime?
+  isActive       Boolean      @default(true)
+  createdAt      DateTime     @default(now())
+  createdBy      String
+  updatedAt      DateTime     @updatedAt
+  updatedBy      String
+
+  @@map("member_parking_assignments")
 }

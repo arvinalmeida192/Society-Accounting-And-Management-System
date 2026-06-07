@@ -13,9 +13,32 @@ const explorerNodes = [
     ],
   },
   {
+    id: 'accounting',
+    label: 'Accounting',
+    children: [
+      { id: 'coa', label: 'Chart of Accounts', route: '/app/accounting/chart-of-accounts' },
+    ],
+  },
+  {
     id: 'property',
     label: 'Property',
-    children: [{ id: 'bld', label: 'Buildings', route: '/app/property/buildings' }],
+    children: [
+      { id: 'bld', label: 'Buildings', route: '/app/property/buildings' },
+      { id: 'wing', label: 'Wings', route: '/app/property/wings' },
+      { id: 'ref-masters', label: 'Reference Masters', route: '/app/property/reference-masters' },
+      { id: 'units', label: 'Units', route: '/app/property/units' },
+      { id: 'park-tariff', label: 'Parking Tariffs', route: '/app/property/parking-tariffs' },
+      { id: 'park-space', label: 'Parking Spaces', route: '/app/property/parking-spaces' },
+      { id: 'park-assign', label: 'Parking Assignments', route: '/app/property/parking-assignments' },
+    ],
+  },
+  {
+    id: 'members',
+    label: 'Members',
+    children: [
+      { id: 'mem-reg', label: 'Member Register', route: '/app/members/register' },
+      { id: 'mem-tenant', label: 'Tenants', route: '/app/members/tenants' },
+    ],
   },
   {
     id: 'reports',

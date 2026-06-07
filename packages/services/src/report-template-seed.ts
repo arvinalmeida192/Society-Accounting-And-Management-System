@@ -62,11 +62,26 @@ export async function seedSocietyConfiguration(
   actorId: string = SYSTEM_ACTOR,
 ): Promise<void> {
   const templateIds = await seedReportTemplates(client, actorId);
+  const { seedDefaultChartOfAccounts } = await import('./coa-seed.js');
+  const linkages = await seedDefaultChartOfAccounts(client, actorId);
 
   await client.societyParameters.create({
     data: {
       id: 'singleton',
       societyIdentityId,
+      shareCapitalGroupId: linkages?.shareCapitalGroupId,
+      shareCapitalSubgroupId: linkages?.shareCapitalSubgroupId,
+      bankSubgroupId: linkages?.bankSubgroupId,
+      cashSubgroupId: linkages?.cashSubgroupId,
+      memberSubgroupId: linkages?.memberSubgroupId,
+      tenantSubgroupId: linkages?.tenantSubgroupId,
+      incomeExpenseSubgroupId: linkages?.incomeExpenseSubgroupId,
+      interestAccountId: linkages?.interestAccountId,
+      adjustmentAccountId: linkages?.adjustmentAccountId,
+      nonOccupancyAccountId: linkages?.nonOccupancyAccountId,
+      serviceTaxAccountId: linkages?.serviceTaxAccountId,
+      educationCessAccountId: linkages?.educationCessAccountId,
+      cashBankGroupId: linkages?.cashBankGroupId,
       createdBy: actorId,
       updatedBy: actorId,
     },
@@ -96,6 +111,9 @@ export async function seedSocietyConfiguration(
   });
 
   const fy = await client.financialYear.findUniqueOrThrow({ where: { id: financialYearId } });
+  const { seedPropertyReferenceMasters } = await import('./property-reference-seed.js');
+  await seedPropertyReferenceMasters(client, actorId);
+
   const { regenerateBillingPeriodCalendar } = await import('./billing-period-service.js');
   await regenerateBillingPeriodCalendar(client, {
     financialYearId,
