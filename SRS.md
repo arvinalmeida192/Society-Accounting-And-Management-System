@@ -9,7 +9,6 @@ _Next-Generation Offline Desktop Application_
 | **Status**           | Draft                                               |
 | **Prepared By**      | Arvin                                               |
 | **Date**             | 7 June 2026                                         |
-| **Based On**         | eSociety User Manual (Perfect eLogics Pvt. Ltd.)    |
 | **Platform Target**  | Electron (Windows / macOS / Linux) - Offline-First  |
 | **Technology Stack** | Electron · React · TypeScript · SQLite (via Prisma) |
 
