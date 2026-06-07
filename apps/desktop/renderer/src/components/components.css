@@ -1,0 +1,62 @@
+.master-toolbar {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.35rem;
+  padding: 0.5rem;
+  background: #fff;
+  border: 1px solid #d8dee4;
+  border-radius: 8px;
+}
+
+.master-toolbar button {
+  font: inherit;
+  padding: 0.35rem 0.65rem;
+  border: 1px solid #c5cdd6;
+  border-radius: 4px;
+  background: #fafbfc;
+  cursor: pointer;
+}
+
+.master-toolbar button:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+
+.toolbar-spacer {
+  flex: 1;
+}
+
+.overlay {
+  position: fixed;
+  inset: 0;
+  background: rgba(0, 0, 0, 0.35);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 1000;
+}
+
+.drawer,
+.dialog {
+  background: #fff;
+  padding: 1rem 1.25rem;
+  border-radius: 8px;
+  min-width: 320px;
+  max-width: 90vw;
+  box-shadow: 0 8px 32px rgba(0, 0, 0, 0.15);
+}
+
+.drawer-actions {
+  display: flex;
+  justify-content: flex-end;
+  gap: 0.5rem;
+  margin-top: 1rem;
+}
+
+.print-preview .preview-frame {
+  border: 1px solid #ddd;
+  padding: 1rem;
+  min-height: 120px;
+  margin-top: 0.5rem;
+  background: #fff;
+}

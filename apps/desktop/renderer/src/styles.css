@@ -1,0 +1,36 @@
+.app-shell {
+  font-family: system-ui, -apple-system, Segoe UI, Roboto, sans-serif;
+  color: #1a1a1a;
+  min-height: 100vh;
+  background: #f4f6f8;
+}
+
+.app-header {
+  background: #1e3a5f;
+  color: #fff;
+  padding: 1.25rem 1.5rem;
+}
+
+.app-header h1 {
+  margin: 0 0 0.25rem;
+  font-size: 1.35rem;
+}
+
+.subtitle,
+.session {
+  margin: 0.15rem 0 0;
+  opacity: 0.9;
+  font-size: 0.9rem;
+}
+
+.app-main {
+  padding: 1rem 1.5rem 2rem;
+}
+
+.placeholder {
+  margin-top: 1rem;
+  padding: 1rem;
+  background: #fff;
+  border: 1px solid #d8dee4;
+  border-radius: 8px;
+}

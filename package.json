@@ -1,0 +1,22 @@
+{
+  "name": "sams",
+  "version": "0.1.0",
+  "private": true,
+  "description": "Society Accounting & Management System",
+  "workspaces": [
+    "packages/*",
+    "apps/*"
+  ],
+  "scripts": {
+    "dev": "npm run dev -w @sams/desktop",
+    "build": "npm run build -w @sams/desktop",
+    "test": "npm run test --workspaces --if-present",
+    "lint": "npm run lint --workspaces --if-present",
+    "db:generate": "npm run generate -w @sams/db",
+    "db:migrate": "npm run migrate -w @sams/db",
+    "db:seed": "npm run seed -w @sams/db"
+  },
+  "engines": {
+    "node": ">=20"
+  }
+}

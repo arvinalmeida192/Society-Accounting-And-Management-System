@@ -1,0 +1,97 @@
+// SAMS Database Schema — Phase 1: SystemMeta, User, Permission, AuditLog
+// SDD §24.1, §24.7
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "sqlite"
+  url      = env("DATABASE_URL")
+}
+
+enum UserRole {
+  ADMIN
+  ACCOUNTANT
+  OPERATOR
+  COMMITTEE
+  AUDITOR
+}
+
+enum PermissionAction {
+  CREATE
+  READ
+  UPDATE
+  DELETE
+  PRINT
+  EXPORT
+}
+
+enum AuditAction {
+  CREATE
+  UPDATE
+  DELETE
+}
+
+enum YearStorageMode {
+  SAME_FILE
+  SEPARATE_FILES
+}
+
+model SystemMeta {
+  id                Int             @id @default(1)
+  schemaVersion     String
+  appVersionCreated String
+  isReadOnly        Boolean         @default(false)
+  closedAt          DateTime?
+  closedById        String?
+  yearStorageMode   YearStorageMode @default(SEPARATE_FILES)
+  closedBy          User?           @relation("ClosedByUser", fields: [closedById], references: [id])
+
+  @@map("system_meta")
+}
+
+model User {
+  id           String    @id @default(cuid())
+  username     String    @unique
+  passwordHash String
+  displayName  String
+  role         UserRole
+  isActive     Boolean   @default(true)
+  lastLoginAt  DateTime?
+  createdAt    DateTime  @default(now())
+  createdBy    String
+  updatedAt    DateTime  @updatedAt
+  updatedBy    String
+  auditLogs    AuditLog[]
+  closedSystemMetas SystemMeta[] @relation("ClosedByUser")
+
+  @@map("users")
+}
+
+model Permission {
+  id       String           @id @default(cuid())
+  role     UserRole
+  resource String
+  action   PermissionAction
+
+  @@unique([role, resource, action])
+  @@map("permissions")
+}
+
+model AuditLog {
+  id           String      @id @default(cuid())
+  userId       String
+  action       AuditAction
+  entityName   String
+  entityId     String
+  oldValueJson String?
+  newValueJson String?
+  timestamp    DateTime    @default(now())
+  ipAddress    String?
+  user         User        @relation(fields: [userId], references: [id])
+
+  @@index([timestamp])
+  @@index([entityName, entityId])
+  @@map("audit_logs")
+}

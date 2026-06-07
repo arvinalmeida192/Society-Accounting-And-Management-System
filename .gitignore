@@ -1,0 +1,14 @@
+node_modules/
+dist/
+out/
+*.db
+*.db-journal
+*.db-wal
+*.db-shm
+.env
+.env.local
+.DS_Store
+coverage/
+*.log
+.prisma/
+packages/db/prisma/dev.db
