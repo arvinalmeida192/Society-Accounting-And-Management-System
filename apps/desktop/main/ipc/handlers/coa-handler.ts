@@ -106,6 +106,7 @@ export const coaHandlers = {
       activeOnly?: boolean;
       categoryId?: AccountCategoryType;
       groupId?: string;
+      pettyCashOnly?: boolean;
     },
   ) => {
     const kind = payload.kind ?? 'ACCOUNT';
@@ -120,6 +121,7 @@ export const coaHandlers = {
       payload.query,
       kind,
       payload.activeOnly ?? true,
+      payload.pettyCashOnly ?? false,
     );
   }) as IpcHandler<
     {
@@ -128,6 +130,7 @@ export const coaHandlers = {
       activeOnly?: boolean;
       categoryId?: AccountCategoryType;
       groupId?: string;
+      pettyCashOnly?: boolean;
     },
     AccountPickerItem[]
   >,

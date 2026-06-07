@@ -52,12 +52,25 @@ const explorerNodes = [
     ],
   },
   {
+    id: 'transactions',
+    label: 'Transactions',
+    children: [
+      { id: 'vch-entry', label: 'Receipt / Payment / Contra', route: '/app/transactions/voucher' },
+      { id: 'vch-petty', label: 'Petty Cash', route: '/app/transactions/petty-cash' },
+      { id: 'vch-adj', label: 'JV / DN / CN', route: '/app/transactions/adjustments' },
+      { id: 'bnk-rec', label: 'Bank Reconciliation', route: '/app/transactions/bank-reconciliation' },
+    ],
+  },
+  {
     id: 'billing',
     label: 'Billing',
     children: [
       { id: 'tar-def', label: 'Tariff Definition', route: '/app/billing/tariffs' },
       { id: 'tar-settle', label: 'Settlement Sequence', route: '/app/billing/settlement-sequence' },
       { id: 'tar-map', label: 'Bill Register Mapping', route: '/app/billing/bill-register-mapping' },
+      { id: 'bil-reg', label: 'Regular Bill', route: '/app/billing/regular' },
+      { id: 'bil-bulk', label: 'Bulk Regular Bills', route: '/app/billing/regular/bulk' },
+      { id: 'bil-supp', label: 'Supplementary Bill', route: '/app/billing/supplementary' },
     ],
   },
   {

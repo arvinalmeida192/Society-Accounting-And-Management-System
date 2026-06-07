@@ -441,12 +441,14 @@ export async function searchAccountsForPicker(
   query: string,
   kind: CoaPickerKind = 'ACCOUNT',
   activeOnly = true,
+  pettyCashOnly = false,
 ): Promise<AccountPickerItem[]> {
   const subgroupIds = await resolvePickerSubgroupIds(client, kind);
 
   const records = await client.accountMaster.findMany({
     where: {
       isArchived: false,
+      ...(pettyCashOnly ? { pettyCash: true } : {}),
       ...(activeOnly ? { isActive: true } : {}),
       ...(subgroupIds ? { subgroupId: { in: subgroupIds } } : {}),
       ...(query.trim()
@@ -475,6 +477,9 @@ export async function searchAccountsForPicker(
     label: record.shortCode
       ? `${record.particulars} (${record.shortCode})`
       : record.particulars,
+    ...(kind === 'MEMBER' && record.memberSubsidiaryId
+      ? { memberId: record.memberSubsidiaryId }
+      : {}),
   }));
 }
 

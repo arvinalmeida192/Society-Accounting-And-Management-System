@@ -8,7 +8,7 @@ Offline-first Electron desktop application for co-operative housing society acco
 - `SDD.md` — Software Design Document
 - `Development_Plan.md` — Phased implementation plan
 
-## Current status: Phase 8 complete
+## Current status: Phase 13 complete
 
 | Phase | Scope |
 | ----- | ----- |
@@ -20,6 +20,11 @@ Offline-first Electron desktop application for co-operative housing society acco
 | 6 | Members, tenants, opening balances with JV posting, member subsidiary ledgers |
 | 7 | Miscellaneous masters: banks/MICR, narrations, address book, cheque reasons, contractors |
 | 8 | Tariff definitions, settlement sequence, bill register mapping, tariff resolution engine |
+| 9 | Regular billing engine: single bill, bulk generation, interest/NOC/rebate/ST, RB number series |
+| 10 | Supplementary billing: Member/Tenant/General bill-to, SB number series, supplementary interest/arrears |
+| 11 | Vouchers: Receipt/Payment/Contra posting, FIFO settlement, cheque/MICR, general bill reference |
+| 12 | Adjustments (JV/DN/CN), petty cash, cheque print preview, cheque cancellation with reversal |
+| 13 | Bank reconciliation: clearing entry, bulk clearing dates, reconciliation statement, voucher drill-down |
 
 ## Setup
 
@@ -41,7 +46,8 @@ npm run dev
 6. Use **Explorer → Property** for buildings, wings, units, reference masters, and parking setup.
 7. Use **Explorer → Members** for member register, tenants, and opening balances.
 8. Use **Explorer → Masters** for banks, narrations, address book, cheque reasons, and contractors.
-9. Use **Explorer → Billing** for tariff definitions, settlement sequence, and bill register column mapping.
+9. Use **Explorer → Billing** for tariffs, regular bill entry, bulk bill generation, and supplementary bills.
+10. Use **Explorer → Transactions** for vouchers, petty cash, adjustments, bank reconciliation, and cheque printing/cancellation.
 
 Each society/financial year is stored in its own `.sqlite` file.
 

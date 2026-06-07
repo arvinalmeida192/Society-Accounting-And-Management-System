@@ -1,4 +1,4 @@
-// SAMS Database Schema — Phases 1–8
+// SAMS Database Schema — Phases 1–11
 
 generator client {
   provider = "prisma-client-js"
@@ -82,6 +82,46 @@ enum TariffLineType {
 enum BillRegisterDisplayMode {
   SHORT_CODE
   FULL_NAME
+}
+
+enum BillType {
+  REGULAR
+  SUPPLEMENTARY
+}
+
+enum BillToType {
+  MEMBER
+  TENANT
+  GENERAL
+}
+
+enum BillStatus {
+  DRAFT
+  POSTED
+  CANCELLED
+}
+
+enum BillLineType {
+  CHARGE
+  INTEREST
+  NOC
+  SERVICE_TAX
+  REBATE
+  ADJUSTMENT
+  PARKING
+}
+
+enum SeriesType {
+  MR
+  GR
+  CP
+  BP
+  CO
+  JV
+  DN
+  CN
+  RB
+  SB
 }
 
 enum RebateType {
@@ -171,6 +211,19 @@ enum VoucherType {
   DN
   CN
   PETTY_CASH
+}
+
+enum VoucherSubType {
+  MEMBER_RECEIPT
+  GENERAL_RECEIPT
+  CASH_PAYMENT
+  BANK_PAYMENT
+}
+
+enum ChequeType {
+  CROSSED
+  DD
+  OUTSTATION
 }
 
 enum PartyType {
@@ -283,6 +336,8 @@ model FinancialYear {
   tariffDefinitions        TariffDefinition[]
   tariffSettlementSequences TariffSettlementSequence[]
   tariffBillRegisterMappings TariffBillRegisterMapping[]
+  bills                      Bill[]
+  voucherNumberSeries        VoucherNumberSeries[]
   createdAt          DateTime        @default(now())
   createdBy          String
   updatedAt          DateTime        @updatedAt
@@ -509,20 +564,33 @@ model AccountMaster {
   @@map("account_masters")
 }
 
-/** Minimal voucher shell for ledger balance and archive guards — expanded in Phase 11 */
 model Voucher {
   id                    String                 @id @default(cuid())
   financialYearId       String
   financialYear         FinancialYear          @relation(fields: [financialYearId], references: [id])
-  status                VoucherStatus          @default(POSTED)
+  voucherType           VoucherType            @default(JV)
+  subType               VoucherSubType?
+  systemVoucherNo       String
+  manualVoucherNo       String?
   voucherDate           DateTime
+  narration             String                 @default("")
+  narrationMasterId     String?
+  reconciliationAudited Boolean                @default(false)
+  recordAudited         Boolean                @default(false)
+  status                VoucherStatus          @default(POSTED)
+  reversalOfVoucherId   String?
+  reversedByVoucherId   String?
   lines                 VoucherLine[]
+  billSettlements       BillSettlement[]
+  generalBillSettlements GeneralBillSettlement[]
   memberOpeningBalances MemberOpeningBalance[]
   createdAt             DateTime               @default(now())
   createdBy             String
   updatedAt             DateTime               @updatedAt
   updatedBy             String
 
+  @@index([voucherDate])
+  @@index([voucherType])
   @@map("vouchers")
 }
 
@@ -538,6 +606,7 @@ model VoucherLine {
   drAmount        Decimal       @default(0)
   crAmount        Decimal       @default(0)
   particulars     String?
+  bankAccountId   String?
   chequeDetail    ChequeDetail?
   createdAt       DateTime      @default(now())
   createdBy       String
@@ -776,6 +845,7 @@ model Member {
   openingBalances              MemberOpeningBalance[]
   parkingAssignments           MemberParkingAssignment[]
   voucherLines                 VoucherLine[]
+  bills                        Bill[]
   createdAt                    DateTime  @default(now())
   createdBy                    String
   updatedAt                    DateTime  @updatedAt
@@ -1031,17 +1101,20 @@ model ContractorDetail {
   @@map("contractor_details")
 }
 
-/** Minimal cheque shell for dishonoured register — expanded in Phase 11 */
 model ChequeDetail {
   id                   String                    @id @default(cuid())
   voucherLineId        String                    @unique
   voucherLine          VoucherLine               @relation(fields: [voucherLineId], references: [id], onDelete: Cascade)
   chequeNo             String
   chequeDate           DateTime
+  isPostDated          Boolean                   @default(false)
+  bankSlipNo           String?
+  micrCode             String?
+  chequeType           ChequeType?
   bankName             String?
   branchName           String?
   drawerName           String?
-  micrCode             String?
+  bankMasterId         String?
   clearedOnDate        DateTime?
   cancelledOn          DateTime?
   cancellationReasonId String?
@@ -1052,6 +1125,7 @@ model ChequeDetail {
   updatedBy            String
 
   @@index([cancellationReasonId])
+  @@index([bankSlipNo])
   @@map("cheque_details")
 }
 
@@ -1141,4 +1215,148 @@ model TariffBillRegisterMapping {
   @@unique([financialYearId, srNo])
   @@unique([financialYearId, accountMasterId])
   @@map("tariff_bill_register_mappings")
+}
+
+model VoucherNumberSeries {
+  id              String       @id @default(cuid())
+  financialYearId String
+  financialYear   FinancialYear @relation(fields: [financialYearId], references: [id])
+  seriesType      SeriesType
+  prefix          String
+  lastNumber      Int          @default(0)
+  createdAt       DateTime     @default(now())
+  createdBy       String
+  updatedAt       DateTime     @updatedAt
+  updatedBy       String
+
+  @@unique([financialYearId, seriesType])
+  @@map("voucher_number_series")
+}
+
+model Bill {
+  id                 String     @id @default(cuid())
+  financialYearId    String
+  financialYear      FinancialYear @relation(fields: [financialYearId], references: [id])
+  billType           BillType   @default(REGULAR)
+  systemBillNo       String
+  manualBillNo       String?
+  bookSr             String?
+  billSerialNo       Int
+  billForPeriodKey   String
+  billForPeriodLabel String
+  billDate           DateTime
+  dueDate            DateTime
+  memberId           String?
+  member             Member?    @relation(fields: [memberId], references: [id])
+  tenantId           String?
+  billToType         BillToType @default(MEMBER)
+  generalPartyName   String?
+  generalReferenceNo String?
+  buildingId         String?
+  wingId             String?
+  unitId             String?
+  areaSnapshot       Decimal?
+  totalCharges       Decimal    @default(0)
+  interestAmount     Decimal    @default(0)
+  interestOverride   Decimal?
+  serviceTaxAmount   Decimal    @default(0)
+  rebateAmount       Decimal    @default(0)
+  adjustmentAmount   Decimal    @default(0)
+  billAmount         Decimal    @default(0)
+  principalArrears   Decimal    @default(0)
+  interestArrears    Decimal    @default(0)
+  remark             String?
+  status             BillStatus @default(POSTED)
+  isManualEntry      Boolean    @default(false)
+  lines              BillLine[]
+  interestDetails    BillInterestDetail[]
+  settlements           BillSettlement[]
+  generalSettlements    GeneralBillSettlement[]
+  createdAt          DateTime   @default(now())
+  createdBy          String
+  updatedAt          DateTime   @updatedAt
+  updatedBy          String
+
+  @@unique([memberId, billForPeriodKey, billType])
+  @@index([billDate])
+  @@index([billForPeriodKey])
+  @@map("bills")
+}
+
+model BillLine {
+  id              String       @id @default(cuid())
+  billId          String
+  bill            Bill         @relation(fields: [billId], references: [id], onDelete: Cascade)
+  lineType        BillLineType
+  accountMasterId String?
+  chargeName      String
+  amount          Decimal
+  srNo            Int
+  createdAt       DateTime     @default(now())
+  createdBy       String
+  updatedAt       DateTime     @updatedAt
+  updatedBy       String
+
+  @@unique([billId, srNo])
+  @@map("bill_lines")
+}
+
+model BillInterestDetail {
+  id                 String   @id @default(cuid())
+  billId             String
+  bill               Bill     @relation(fields: [billId], references: [id], onDelete: Cascade)
+  sourceBillId       String?
+  sourceDescription  String?
+  method             String
+  baseAmount         Decimal
+  ratePercent        Decimal
+  periodFrom         DateTime
+  periodTo           DateTime
+  daysOrMonths       Int
+  computedInterest   Decimal
+  overriddenInterest Decimal?
+  createdAt          DateTime @default(now())
+  createdBy          String
+  updatedAt          DateTime @updatedAt
+  updatedBy          String
+
+  @@map("bill_interest_details")
+}
+
+model BillSettlement {
+  id                    String   @id @default(cuid())
+  billId                String
+  bill                  Bill     @relation(fields: [billId], references: [id], onDelete: Cascade)
+  voucherId             String?
+  voucher               Voucher? @relation(fields: [voucherId], references: [id])
+  settlementDate        DateTime
+  principalAllocated    Decimal  @default(0)
+  interestAllocated     Decimal  @default(0)
+  serviceTaxAllocated   Decimal  @default(0)
+  chargeHeadBreakdown   String?
+  createdAt             DateTime @default(now())
+  createdBy             String
+  updatedAt             DateTime @updatedAt
+  updatedBy             String
+
+  @@index([voucherId])
+  @@map("bill_settlements")
+}
+
+model GeneralBillSettlement {
+  id                  String   @id @default(cuid())
+  voucherId           String
+  voucher             Voucher  @relation(fields: [voucherId], references: [id], onDelete: Cascade)
+  supplementaryBillId String
+  supplementaryBill   Bill     @relation(fields: [supplementaryBillId], references: [id], onDelete: Cascade)
+  amountAllocated     Decimal  @default(0)
+  settlementDate      DateTime
+  createdAt           DateTime @default(now())
+  createdBy           String
+  updatedAt           DateTime @updatedAt
+  updatedBy           String
+
+  @@index([voucherId])
+  @@index([supplementaryBillId])
+  @@map("general_bill_settlements")
 }

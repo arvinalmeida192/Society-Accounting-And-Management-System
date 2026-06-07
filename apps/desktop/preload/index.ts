@@ -74,6 +74,42 @@ import {
   type TariffSettlementSequenceSaveDto,
   type TariffBillRegisterMappingDto,
   type TariffBillRegisterMappingSaveDto,
+  type BillingPeriodDto,
+  type BillSummaryDto,
+  type RegularBillDetailDto,
+  type RegularBillPreviewDto,
+  type RegularBillSaveDto,
+  type BillInterestDetailDto,
+  type BillSettlementDto,
+  type BulkRegularBillGenerateDto,
+  type BulkRegularBillResult,
+  type BillToType,
+  type SupplementaryBillDetailDto,
+  type SupplementaryBillPreviewDto,
+  type SupplementaryBillSaveDto,
+  type SupplementaryBillSummaryDto,
+  type VoucherType,
+  type VoucherSubType,
+  type VoucherSaveDto,
+  type VoucherDetailDto,
+  type VoucherSummaryDto,
+  type VoucherPreviewResultDto,
+  type MicrLookupResult,
+  type OpenBillDto,
+  type RegularSettlementInputDto,
+  type SettlementAllocationResultDto,
+  type GeneralBillSettlementDto,
+  type ChequePrintDto,
+  type VoucherCancelInputDto,
+  type VoucherCancelResultDto,
+  type AdjustmentVoucherDto,
+  type PettyCashVoucherDto,
+  type PartialWaiverInputDto,
+  type PartialWaiverPreviewDto,
+  type PartialWaiverResultDto,
+  type BankRecGridRow,
+  type BankReconciliationStatementDto,
+  type BankRecStatus,
 } from '@sams/shared-types';
 
 async function invoke<TPayload, TResult>(
@@ -173,6 +209,7 @@ contextBridge.exposeInMainWorld('sams', {
         activeOnly?: boolean;
         categoryId?: AccountCategoryType;
         groupId?: string;
+        pettyCashOnly?: boolean;
       },
     ) =>
       invoke<
@@ -182,6 +219,7 @@ contextBridge.exposeInMainWorld('sams', {
           activeOnly?: boolean;
           categoryId?: AccountCategoryType;
           groupId?: string;
+          pettyCashOnly?: boolean;
         },
         AccountPickerItem[]
       >(IpcChannels.COA_SEARCH_FOR_PICKER, {
@@ -404,6 +442,121 @@ contextBridge.exposeInMainWorld('sams', {
       ),
     saveBillRegisterMapping: (payload: TariffBillRegisterMappingSaveDto) =>
       invoke(IpcChannels.TARIFF_SAVE_BILL_REGISTER_MAPPING, payload),
+  },
+  billing: {
+    listPeriods: (financialYearId?: string) =>
+      invoke<{ financialYearId?: string }, BillingPeriodDto[]>(
+        IpcChannels.BILLING_LIST_PERIODS,
+        { financialYearId },
+      ),
+    getNextPeriod: () =>
+      invoke<Record<string, never>, { periodKey: string; periodLabel: string } | null>(
+        IpcChannels.BILLING_GET_NEXT_PERIOD,
+        {},
+      ),
+    listRegularBills: (filter?: { memberId?: string; periodKey?: string; search?: string }) =>
+      invoke(IpcChannels.BILLING_LIST_REGULAR, filter ?? {}),
+    getRegularBill: (id: string) =>
+      invoke<{ id: string }, RegularBillDetailDto>(IpcChannels.BILLING_GET_REGULAR, { id }),
+    previewRegularBill: (payload: RegularBillPreviewDto) =>
+      invoke(IpcChannels.BILLING_PREVIEW_REGULAR, payload),
+    saveRegularBill: (payload: RegularBillSaveDto) =>
+      invoke(IpcChannels.BILLING_SAVE_REGULAR, payload),
+    getInterestDetail: (id: string) =>
+      invoke<{ id: string }, BillInterestDetailDto[]>(
+        IpcChannels.BILLING_GET_INTEREST_DETAIL,
+        { id },
+      ),
+    generateBulkRegular: (payload: BulkRegularBillGenerateDto) =>
+      invoke(IpcChannels.BILLING_GENERATE_BULK_REGULAR, payload),
+    getBillSettlements: (billId: string) =>
+      invoke<{ billId: string }, BillSettlementDto[]>(
+        IpcChannels.BILLING_GET_SETTLEMENTS,
+        { billId },
+      ),
+    listSupplementaryBills: (filter?: {
+      billToType?: BillToType;
+      memberId?: string;
+      tenantId?: string;
+      periodKey?: string;
+      search?: string;
+    }) => invoke(IpcChannels.BILLING_LIST_SUPPLEMENTARY, filter ?? {}),
+    getSupplementaryBill: (id: string) =>
+      invoke<{ id: string }, SupplementaryBillDetailDto>(
+        IpcChannels.BILLING_GET_SUPPLEMENTARY,
+        { id },
+      ),
+    previewSupplementaryBill: (payload: SupplementaryBillPreviewDto) =>
+      invoke(IpcChannels.BILLING_PREVIEW_SUPPLEMENTARY, payload),
+    saveSupplementaryBill: (payload: SupplementaryBillSaveDto) =>
+      invoke(IpcChannels.BILLING_SAVE_SUPPLEMENTARY, payload),
+  },
+  voucher: {
+    list: (filter?: {
+      voucherType?: VoucherType;
+      dateFrom?: string;
+      dateTo?: string;
+      search?: string;
+    }) => invoke(IpcChannels.VOUCHER_LIST, filter ?? {}),
+    get: (id: string) =>
+      invoke<{ id: string }, VoucherDetailDto>(IpcChannels.VOUCHER_GET, { id }),
+    previewPost: (payload: VoucherSaveDto) =>
+      invoke(IpcChannels.VOUCHER_PREVIEW_POST, payload),
+    post: (payload: VoucherSaveDto) => invoke(IpcChannels.VOUCHER_POST, payload),
+    lookupMicr: (micrCode: string) =>
+      invoke<{ micrCode: string }, MicrLookupResult | null>(
+        IpcChannels.VOUCHER_LOOKUP_MICR,
+        { micrCode },
+      ),
+    validateManualNo: (payload: {
+      voucherType: VoucherType;
+      subType?: VoucherSubType;
+      manualNo: string;
+      excludeVoucherId?: string;
+    }) => invoke(IpcChannels.VOUCHER_VALIDATE_MANUAL_NO, payload),
+    getOpenBillsForMember: (memberId: string, billType: 'REGULAR' | 'SUPPLEMENTARY') =>
+      invoke<{ memberId: string; billType: 'REGULAR' | 'SUPPLEMENTARY' }, OpenBillDto[]>(
+        IpcChannels.VOUCHER_GET_OPEN_BILLS,
+        { memberId, billType },
+      ),
+    allocateSettlement: (payload: RegularSettlementInputDto & { asOfDate?: string }) =>
+      invoke(IpcChannels.VOUCHER_ALLOCATE_SETTLEMENT, payload),
+    linkGeneralBill: (payload: {
+      voucherId: string;
+      supplementaryBillId: string;
+      amount: number;
+    }) => invoke(IpcChannels.VOUCHER_LINK_GENERAL_BILL, payload),
+    cancel: (payload: VoucherCancelInputDto) =>
+      invoke(IpcChannels.VOUCHER_CANCEL, payload),
+    getChequePrintData: (voucherId: string) =>
+      invoke<{ voucherId: string }, ChequePrintDto>(IpcChannels.VOUCHER_GET_CHEQUE_PRINT_DATA, {
+        voucherId,
+      }),
+  },
+  pettycash: {
+    list: (filter?: { dateFrom?: string; dateTo?: string; search?: string }) =>
+      invoke(IpcChannels.PETTYCASH_LIST, filter ?? {}),
+    post: (payload: PettyCashVoucherDto) => invoke(IpcChannels.PETTYCASH_POST, payload),
+  },
+  adjustment: {
+    post: (payload: AdjustmentVoucherDto) => invoke(IpcChannels.ADJUSTMENT_POST, payload),
+    previewPartialWaiver: (payload: PartialWaiverInputDto) =>
+      invoke(IpcChannels.ADJUSTMENT_PREVIEW_PARTIAL_WAIVER, payload),
+    partialWaiver: (payload: PartialWaiverInputDto) =>
+      invoke(IpcChannels.ADJUSTMENT_PARTIAL_WAIVER, payload),
+    cancel: (payload: VoucherCancelInputDto) => invoke(IpcChannels.ADJUSTMENT_CANCEL, payload),
+  },
+  bankrec: {
+    listItems: (payload: {
+      bankAccountId: string;
+      dateFrom: string;
+      dateTo: string;
+      status?: BankRecStatus;
+    }) => invoke(IpcChannels.BANKREC_LIST_ITEMS, payload),
+    bulkSetClearingDate: (payload: { voucherLineIds: string[]; clearingDate: string }) =>
+      invoke(IpcChannels.BANKREC_BULK_SET_CLEARING_DATE, payload),
+    getStatement: (payload: { bankAccountId: string; asOnDate: string }) =>
+      invoke(IpcChannels.BANKREC_GET_STATEMENT, payload),
   },
 });
 

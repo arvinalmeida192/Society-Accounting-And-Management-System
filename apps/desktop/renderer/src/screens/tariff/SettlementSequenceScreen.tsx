@@ -211,7 +211,35 @@ export function SettlementSequenceScreen(): React.ReactElement {
                       }}
                     />
                   </td>
-                  <td>
+                  <td className="grid-actions">
+                    <button
+                      type="button"
+                      disabled={disabled || index === 0}
+                      onClick={() => {
+                        const next = [...lines];
+                        const temp = next[index];
+                        next[index] = next[index - 1]!;
+                        next[index - 1] = temp!;
+                        setLines(next.map((row, rowIndex) => ({ ...row, srNo: rowIndex + 1 })));
+                        setEditing(true);
+                      }}
+                    >
+                      ↑
+                    </button>
+                    <button
+                      type="button"
+                      disabled={disabled || index === lines.length - 1}
+                      onClick={() => {
+                        const next = [...lines];
+                        const temp = next[index];
+                        next[index] = next[index + 1]!;
+                        next[index + 1] = temp!;
+                        setLines(next.map((row, rowIndex) => ({ ...row, srNo: rowIndex + 1 })));
+                        setEditing(true);
+                      }}
+                    >
+                      ↓
+                    </button>
                     <button
                       type="button"
                       disabled={disabled}
@@ -224,7 +252,7 @@ export function SettlementSequenceScreen(): React.ReactElement {
                         setEditing(true);
                       }}
                     >
-                      Remove
+                      ×
                     </button>
                   </td>
                 </tr>

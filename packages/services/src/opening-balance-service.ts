@@ -177,7 +177,10 @@ export async function saveMemberOpeningBalance(
     const voucher = await tx.voucher.create({
       data: {
         financialYearId,
+        voucherType: 'JV',
+        systemVoucherNo: `OB-${member.id.slice(0, 12)}`,
         voucherDate: fy.startDate,
+        narration: `Opening balance — ${member.memberName}`,
         status: VoucherStatus.POSTED,
         createdBy: actorId,
         updatedBy: actorId,

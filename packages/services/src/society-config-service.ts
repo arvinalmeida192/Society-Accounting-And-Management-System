@@ -217,9 +217,8 @@ function validateInterestRates(dto: SocietyParametersDto): Record<string, string
   return errors;
 }
 
-async function countBillsInFinancialYear(_client: PrismaClient): Promise<number> {
-  // Bill entity arrives in Phase 9 — SP-002 hook ready for future count.
-  return 0;
+async function countBillsInFinancialYear(client: PrismaClient): Promise<number> {
+  return client.bill.count({ where: { billType: 'REGULAR' } });
 }
 
 export async function getSocietyIdentity(client: PrismaClient): Promise<SocietyIdentityDto> {

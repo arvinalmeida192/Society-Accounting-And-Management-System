@@ -49,6 +49,13 @@ import { ReportFormatsScreen } from './society/ReportFormatsScreen';
 import { BillRegisterMappingScreen } from './tariff/BillRegisterMappingScreen';
 import { SettlementSequenceScreen } from './tariff/SettlementSequenceScreen';
 import { TariffDefinitionScreen } from './tariff/TariffDefinitionScreen';
+import { BulkRegularBillsScreen } from './billing/BulkRegularBillsScreen';
+import { RegularBillScreen } from './billing/RegularBillScreen';
+import { SupplementaryBillScreen } from './billing/SupplementaryBillScreen';
+import { VoucherEntryScreen } from './transactions/VoucherEntryScreen';
+import { PettyCashScreen } from './transactions/PettyCashScreen';
+import { AdjustmentVoucherScreen } from './transactions/AdjustmentVoucherScreen';
+import { BankReconciliationScreen } from './transactions/BankReconciliationScreen';
 
 function PlaceholderPane({ title }: { title: string }): React.ReactElement {
   return (
@@ -153,6 +160,13 @@ export function MainShell({ session }: MainShellProps): React.ReactElement {
             <Route path="billing/tariffs" element={<TariffDefinitionScreen />} />
             <Route path="billing/settlement-sequence" element={<SettlementSequenceScreen />} />
             <Route path="billing/bill-register-mapping" element={<BillRegisterMappingScreen />} />
+            <Route path="billing/regular/bulk" element={<BulkRegularBillsScreen />} />
+            <Route path="billing/regular" element={<RegularBillScreen />} />
+            <Route path="billing/supplementary" element={<SupplementaryBillScreen />} />
+            <Route path="transactions/voucher" element={<VoucherEntryScreen />} />
+            <Route path="transactions/petty-cash" element={<PettyCashScreen />} />
+            <Route path="transactions/adjustments" element={<AdjustmentVoucherScreen />} />
+            <Route path="transactions/bank-reconciliation" element={<BankReconciliationScreen />} />
             <Route path="reports" element={<PlaceholderPane title="Reports" />} />
             <Route path="*" element={<Navigate to="home" replace />} />
           </Routes>

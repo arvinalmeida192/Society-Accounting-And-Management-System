@@ -41,6 +41,67 @@ export { finalizeSocietyBootstrap } from './startup-service.js';
 export { AuditService, noopAuditService, type AuditLogInput, type AuditLogWriter } from './audit-service.js';
 export { NumberSeriesService, numberSeriesService } from './number-series-service.js';
 export {
+  calculateInterest,
+  collectInterestSources,
+  collectSupplementaryInterestSources,
+} from './interest-calculation-service.js';
+export { calculateNocLines } from './noc-charge-service.js';
+export { calculateRebate } from './rebate-service.js';
+export { calculateServiceTax } from './service-tax-service.js';
+export { computeArrears, computeSupplementaryArrears } from './arrears-service.js';
+export {
+  listBillingPeriods,
+  getNextOpenPeriod,
+  assertNotDuplicateBill,
+  buildRegularBillDraft,
+  previewRegularBill,
+  saveRegularBill,
+  listRegularBills,
+  getRegularBill,
+  getBillSettlements,
+  generateBulkRegular,
+  buildSupplementaryBillDraft,
+  previewSupplementaryBill,
+  saveSupplementaryBill,
+  listSupplementaryBills,
+  getSupplementaryBill,
+  assertNotDuplicateSupplementaryBill,
+} from './billing-service.js';
+export {
+  allocateToBill,
+  allocateRegularSettlement,
+  allocateSupplementarySettlement,
+  getOpenBillsForMember,
+} from './settlement-service.js';
+export { onReceiptPosted } from './statutory-register-service.js';
+export {
+  validateVoucherBalance,
+  validateManualVoucherNo,
+  previewVoucherPost,
+  postVoucher,
+  listVouchers,
+  getVoucher,
+  linkGeneralBill,
+  listOpenBills,
+  allocateSettlementPreview,
+  lookupMicr as voucherLookupMicr,
+  cancelVoucher,
+} from './voucher-service.js';
+export { toIndianRupeesWords } from './amount-in-words-service.js';
+export { prepareChequePrintData, cancelChequeVoucher } from './cheque-service.js';
+export { postPettyCashVoucher, listPettyCashVouchers } from './petty-cash-service.js';
+export {
+  postAdjustmentVoucher,
+  previewPartialWaiver,
+  postPartialWaiver,
+  cancelAdjustmentVoucher,
+} from './adjustment-service.js';
+export {
+  listBankRecItems,
+  bulkUpdateClearingDates,
+  generateBankReconciliationStatement,
+} from './bank-reconciliation-service.js';
+export {
   PERMISSION_SEED_ROWS,
   RESOURCES,
   resolvePermissionKeys,

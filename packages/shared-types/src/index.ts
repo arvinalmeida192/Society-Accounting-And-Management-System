@@ -154,6 +154,39 @@ export const IpcChannels = {
   TARIFF_SAVE_SETTLEMENT_SEQUENCE: 'tariff:saveSettlementSequence',
   TARIFF_LIST_BILL_REGISTER_MAPPING: 'tariff:listBillRegisterMapping',
   TARIFF_SAVE_BILL_REGISTER_MAPPING: 'tariff:saveBillRegisterMapping',
+  BILLING_LIST_PERIODS: 'billing:listPeriods',
+  BILLING_GET_NEXT_PERIOD: 'billing:getNextPeriod',
+  BILLING_LIST_REGULAR: 'billing:listRegularBills',
+  BILLING_GET_REGULAR: 'billing:getRegularBill',
+  BILLING_PREVIEW_REGULAR: 'billing:previewRegularBill',
+  BILLING_SAVE_REGULAR: 'billing:saveRegularBill',
+  BILLING_GET_INTEREST_DETAIL: 'billing:getInterestDetail',
+  BILLING_GENERATE_BULK_REGULAR: 'billing:generateBulkRegular',
+  BILLING_GET_SETTLEMENTS: 'billing:getBillSettlements',
+  BILLING_LIST_SUPPLEMENTARY: 'billing:listSupplementaryBills',
+  BILLING_GET_SUPPLEMENTARY: 'billing:getSupplementaryBill',
+  BILLING_PREVIEW_SUPPLEMENTARY: 'billing:previewSupplementaryBill',
+  BILLING_SAVE_SUPPLEMENTARY: 'billing:saveSupplementaryBill',
+  VOUCHER_LIST: 'voucher:list',
+  VOUCHER_GET: 'voucher:get',
+  VOUCHER_PREVIEW_POST: 'voucher:previewPost',
+  VOUCHER_POST: 'voucher:post',
+  VOUCHER_LOOKUP_MICR: 'voucher:lookupMicr',
+  VOUCHER_VALIDATE_MANUAL_NO: 'voucher:validateManualNo',
+  VOUCHER_GET_OPEN_BILLS: 'voucher:getOpenBillsForMember',
+  VOUCHER_ALLOCATE_SETTLEMENT: 'voucher:allocateSettlement',
+  VOUCHER_LINK_GENERAL_BILL: 'voucher:linkGeneralBill',
+  VOUCHER_CANCEL: 'voucher:cancel',
+  VOUCHER_GET_CHEQUE_PRINT_DATA: 'voucher:getChequePrintData',
+  PETTYCASH_LIST: 'pettycash:list',
+  PETTYCASH_POST: 'pettycash:post',
+  ADJUSTMENT_POST: 'adjustment:post',
+  ADJUSTMENT_PREVIEW_PARTIAL_WAIVER: 'adjustment:previewPartialWaiver',
+  ADJUSTMENT_PARTIAL_WAIVER: 'adjustment:partialWaiver',
+  ADJUSTMENT_CANCEL: 'adjustment:cancel',
+  BANKREC_LIST_ITEMS: 'bankrec:listItems',
+  BANKREC_BULK_SET_CLEARING_DATE: 'bankrec:bulkSetClearingDate',
+  BANKREC_GET_STATEMENT: 'bankrec:getStatement',
 } as const;
 
 export type IpcChannel = (typeof IpcChannels)[keyof typeof IpcChannels] | string;
@@ -666,6 +699,8 @@ export interface AccountPickerItem {
   groupName: string;
   categoryName: string;
   label: string;
+  /** Set when kind=MEMBER — the member linked to this subsidiary ledger */
+  memberId?: string;
 }
 
 export enum UnitStatus {
@@ -1271,4 +1306,516 @@ export interface TariffBillRegisterMappingSaveDto {
     accountMasterId: string;
     displayMode: BillRegisterDisplayMode;
   }>;
+}
+
+export enum BillType {
+  REGULAR = 'REGULAR',
+  SUPPLEMENTARY = 'SUPPLEMENTARY',
+}
+
+export enum BillStatus {
+  DRAFT = 'DRAFT',
+  POSTED = 'POSTED',
+  CANCELLED = 'CANCELLED',
+}
+
+export enum BillChargeLineType {
+  CHARGE = 'CHARGE',
+  INTEREST = 'INTEREST',
+  NOC = 'NOC',
+  SERVICE_TAX = 'SERVICE_TAX',
+  REBATE = 'REBATE',
+  ADJUSTMENT = 'ADJUSTMENT',
+  PARKING = 'PARKING',
+}
+
+export interface BillingPeriodDto {
+  id: string;
+  financialYearId: string;
+  periodKey: string;
+  periodLabel: string;
+  periodStartDate: string;
+  periodEndDate: string;
+  sequenceNo: number;
+}
+
+export enum BillToType {
+  MEMBER = 'MEMBER',
+  TENANT = 'TENANT',
+  GENERAL = 'GENERAL',
+}
+
+export interface BillSummaryDto {
+  id: string;
+  systemBillNo: string;
+  billForPeriodLabel: string;
+  billDate: string;
+  memberName: string;
+  unitNo: string;
+  buildingShortName: string;
+  billAmount: number;
+  status: BillStatus;
+}
+
+export interface SupplementaryBillSummaryDto extends BillSummaryDto {
+  billToType: BillToType;
+  tenantName: string;
+  generalPartyName: string | null;
+  bookSr: string | null;
+}
+
+export interface BillDraftLineDto {
+  id: string;
+  lineType: BillChargeLineType;
+  accountMasterId: string;
+  chargeName: string;
+  amount: number;
+  srNo: number;
+}
+
+export interface BillInterestDetailDto extends AuditFieldsDto {
+  id: string;
+  billId: string;
+  sourceBillId: string | null;
+  sourceDescription: string | null;
+  method: string;
+  baseAmount: number;
+  ratePercent: number;
+  periodFrom: string;
+  periodTo: string;
+  daysOrMonths: number;
+  computedInterest: number;
+  overriddenInterest: number | null;
+}
+
+export interface BillSettlementDto extends AuditFieldsDto {
+  id: string;
+  billId: string;
+  voucherId: string | null;
+  voucherSystemNo?: string | null;
+  settlementDate: string;
+  principalAllocated: number;
+  interestAllocated: number;
+  serviceTaxAllocated: number;
+}
+
+export interface RegularBillDetailDto extends AuditFieldsDto {
+  id: string;
+  billType: BillType;
+  systemBillNo: string;
+  manualBillNo: string | null;
+  billForPeriodKey: string;
+  billForPeriodLabel: string;
+  billDate: string;
+  dueDate: string;
+  memberId: string;
+  memberName: string;
+  buildingShortName: string;
+  wingShortName: string;
+  unitNo: string;
+  areaSnapshot: number;
+  totalCharges: number;
+  interestAmount: number;
+  interestOverride: number | null;
+  serviceTaxAmount: number;
+  rebateAmount: number;
+  adjustmentAmount: number;
+  billAmount: number;
+  principalArrears: number;
+  interestArrears: number;
+  remark: string | null;
+  status: BillStatus;
+  isManualEntry: boolean;
+  lines: BillDraftLineDto[];
+  interestDetails: BillInterestDetailDto[];
+  settlements: BillSettlementDto[];
+}
+
+export interface RegularBillPreviewDto {
+  id?: string;
+  memberId: string;
+  billForPeriodKey: string;
+  billDate: string;
+  dueDate?: string;
+  systemBillNo?: string;
+  manualBillNo?: string | null;
+  interestOverride?: number | null;
+  rebateOverride?: number | null;
+  adjustmentAmount?: number;
+  remark?: string | null;
+  isManualEntry?: boolean;
+}
+
+export type RegularBillSaveDto = RegularBillPreviewDto;
+
+export interface BulkRegularBillGenerateDto {
+  billForPeriodKey: string;
+  billDate: string;
+  dueDate?: string;
+  startingBillNo?: number;
+  buildingId?: string;
+}
+
+export interface BulkRegularBillResult {
+  created: number;
+  billIds: string[];
+  periodLabel: string;
+}
+
+export interface SupplementaryBillLineInputDto {
+  accountMasterId: string;
+  chargeName: string;
+  amount: number;
+  srNo?: number;
+}
+
+export interface SupplementaryBillDetailDto extends AuditFieldsDto {
+  id: string;
+  billType: BillType;
+  billToType: BillToType;
+  systemBillNo: string;
+  manualBillNo: string | null;
+  bookSr: string | null;
+  billForPeriodKey: string;
+  billForPeriodLabel: string;
+  billDate: string;
+  dueDate: string;
+  memberId: string | null;
+  memberName: string;
+  tenantId: string | null;
+  tenantName: string;
+  generalPartyName: string | null;
+  generalReferenceNo: string | null;
+  buildingShortName: string;
+  wingShortName: string;
+  unitNo: string;
+  areaSnapshot: number;
+  totalCharges: number;
+  interestAmount: number;
+  interestOverride: number | null;
+  serviceTaxAmount: number;
+  rebateAmount: number;
+  adjustmentAmount: number;
+  billAmount: number;
+  principalArrears: number;
+  interestArrears: number;
+  remark: string | null;
+  status: BillStatus;
+  isManualEntry: boolean;
+  lines: BillDraftLineDto[];
+  interestDetails: BillInterestDetailDto[];
+  settlements: BillSettlementDto[];
+}
+
+export interface SupplementaryBillPreviewDto {
+  id?: string;
+  billToType: BillToType;
+  memberId?: string;
+  tenantId?: string;
+  generalPartyName?: string;
+  generalReferenceNo?: string;
+  billForPeriodKey: string;
+  billDate: string;
+  dueDate?: string;
+  bookSr?: string | null;
+  manualBillNo?: string | null;
+  lines: SupplementaryBillLineInputDto[];
+  interestOverride?: number | null;
+  rebateOverride?: number | null;
+  adjustmentAmount?: number;
+  remark?: string | null;
+  isManualEntry?: boolean;
+}
+
+export type SupplementaryBillSaveDto = SupplementaryBillPreviewDto;
+
+export type BillReferenceType =
+  | 'OPENING_BILL'
+  | 'ALL_BILLS'
+  | 'CONTRIBUTION'
+  | 'MEMBER_LEDGER'
+  | 'RECEIPTS'
+  | 'ADJUSTMENTS';
+
+export enum VoucherSubType {
+  MEMBER_RECEIPT = 'MEMBER_RECEIPT',
+  GENERAL_RECEIPT = 'GENERAL_RECEIPT',
+  CASH_PAYMENT = 'CASH_PAYMENT',
+  BANK_PAYMENT = 'BANK_PAYMENT',
+}
+
+export enum ChequeType {
+  CROSSED = 'CROSSED',
+  DD = 'DD',
+  OUTSTATION = 'OUTSTATION',
+}
+
+export enum VoucherStatus {
+  POSTED = 'POSTED',
+  CANCELLED = 'CANCELLED',
+}
+
+export interface VoucherSummaryDto {
+  id: string;
+  systemVoucherNo: string;
+  voucherType: VoucherType;
+  subType: VoucherSubType | null;
+  voucherDate: string;
+  narration: string;
+  drTotal: number;
+  crTotal: number;
+  status: VoucherStatus;
+}
+
+export interface ChequeDetailDto extends AuditFieldsDto {
+  id: string;
+  voucherLineId: string;
+  chequeNo: string;
+  chequeDate: string;
+  isPostDated: boolean;
+  bankSlipNo: string | null;
+  micrCode: string | null;
+  chequeType: ChequeType | null;
+  bankName: string | null;
+  branchName: string | null;
+  drawerName: string | null;
+  bankMasterId: string | null;
+  clearedOnDate: string | null;
+}
+
+export interface VoucherLineDto extends AuditFieldsDto {
+  id: string;
+  lineNo: number;
+  accountMasterId: string;
+  accountParticulars: string;
+  memberId: string | null;
+  memberName: string | null;
+  drAmount: number;
+  crAmount: number;
+  particulars: string | null;
+  bankAccountId: string | null;
+  cheque: ChequeDetailDto | null;
+}
+
+export interface BillSettlementAllocationDto {
+  billId: string;
+  systemBillNo: string;
+  billDate: string;
+  billAmount: number;
+  outstanding: number;
+  allocated: number;
+  principalAllocated: number;
+  interestAllocated: number;
+  serviceTaxAllocated: number;
+}
+
+export interface SettlementAllocationResultDto {
+  allocations: BillSettlementAllocationDto[];
+  totalAllocated: number;
+  unallocated: number;
+}
+
+export interface OpenBillDto {
+  id: string;
+  systemBillNo: string;
+  billType: BillType;
+  billDate: string;
+  billAmount: number;
+  settled: number;
+  outstanding: number;
+}
+
+export interface VoucherDetailDto extends AuditFieldsDto {
+  id: string;
+  voucherType: VoucherType;
+  subType: VoucherSubType | null;
+  systemVoucherNo: string;
+  manualVoucherNo: string | null;
+  voucherDate: string;
+  narration: string;
+  narrationMasterId: string | null;
+  reconciliationAudited: boolean;
+  recordAudited: boolean;
+  status: VoucherStatus;
+  drTotal: number;
+  crTotal: number;
+  lines: VoucherLineDto[];
+  billSettlements: BillSettlementDto[];
+  generalBillSettlements: GeneralBillSettlementDto[];
+}
+
+export interface GeneralBillSettlementDto extends AuditFieldsDto {
+  id: string;
+  voucherId: string;
+  supplementaryBillId: string;
+  systemBillNo: string;
+  generalPartyName: string | null;
+  amountAllocated: number;
+  settlementDate: string;
+}
+
+export interface ChequeDetailInputDto {
+  chequeNo: string;
+  chequeDate: string;
+  isPostDated?: boolean;
+  bankSlipNo?: string;
+  micrCode?: string;
+  chequeType?: ChequeType;
+  bankName?: string;
+  branchName?: string;
+  drawerName?: string;
+  bankMasterId?: string;
+  clearedOnDate?: string;
+}
+
+export interface VoucherLineInputDto {
+  lineNo: number;
+  accountMasterId: string;
+  memberId?: string;
+  drAmount: number;
+  crAmount: number;
+  particulars?: string;
+  bankAccountId?: string;
+  cheque?: ChequeDetailInputDto;
+}
+
+export interface RegularSettlementInputDto {
+  memberId: string;
+  amount: number;
+  autoFifo?: boolean;
+  billIds?: string[];
+}
+
+export interface SupplementarySettlementInputDto {
+  billId: string;
+  amount: number;
+}
+
+export interface GeneralBillSettlementInputDto {
+  supplementaryBillId: string;
+  amount: number;
+}
+
+export interface VoucherSaveDto {
+  id?: string;
+  voucherType: VoucherType;
+  subType?: VoucherSubType;
+  voucherDate: string;
+  manualVoucherNo?: string;
+  narration?: string;
+  narrationMasterId?: string;
+  reconciliationAudited?: boolean;
+  recordAudited?: boolean;
+  lines: VoucherLineInputDto[];
+  regularSettlement?: RegularSettlementInputDto;
+  supplementarySettlements?: SupplementarySettlementInputDto[];
+  generalBillSettlement?: GeneralBillSettlementInputDto;
+}
+
+export interface VoucherPreviewResultDto {
+  balanced: boolean;
+  drTotal: number;
+  crTotal: number;
+  difference: number;
+  warnings: string[];
+  settlementPreview?: SettlementAllocationResultDto;
+}
+
+export interface ChequePrintDto {
+  voucherId: string;
+  templateId: string | null;
+  payee: string;
+  amount: number;
+  amountWords: string;
+  chequeDate: string;
+  chequeNo: string;
+  bankName: string | null;
+  branchName: string | null;
+  signatory1: string | null;
+  signatory2: string | null;
+  templateHtml: string;
+}
+
+export interface VoucherCancelInputDto {
+  id: string;
+  cancelDate: string;
+  reasonId?: string;
+}
+
+export interface VoucherCancelResultDto {
+  original: VoucherDetailDto;
+  reversal: VoucherDetailDto;
+}
+
+export type AdjustmentVoucherDto = Omit<VoucherSaveDto, 'voucherType' | 'subType'> & {
+  voucherType: VoucherType.JV | VoucherType.DN | VoucherType.CN;
+};
+
+export type PettyCashVoucherDto = Omit<VoucherSaveDto, 'voucherType' | 'subType'>;
+
+export interface PartialWaiverInputDto {
+  billId: string;
+  waiverAmount: number;
+  voucherType?: VoucherType.JV | VoucherType.DN | VoucherType.CN;
+  voucherDate: string;
+  narration?: string;
+}
+
+export interface PartialWaiverLinePreviewDto {
+  lineNo: number;
+  accountMasterId: string;
+  accountParticulars: string;
+  memberId?: string;
+  drAmount: number;
+  crAmount: number;
+  particulars?: string;
+}
+
+export interface PartialWaiverPreviewDto {
+  billId: string;
+  systemBillNo: string;
+  memberId: string;
+  memberName: string;
+  outstanding: number;
+  waiverAmount: number;
+  waiverRatio: number;
+  principalWaiver: number;
+  interestWaiver: number;
+  serviceTaxWaiver: number;
+  proposedLines: PartialWaiverLinePreviewDto[];
+}
+
+export interface PartialWaiverResultDto {
+  voucher: VoucherDetailDto;
+  allocations: PartialWaiverPreviewDto;
+}
+
+export enum BankRecStatus {
+  UNCLEARED = 'UNCLEARED',
+  CLEARED = 'CLEARED',
+  ALL = 'ALL',
+}
+
+export interface BankRecGridRow {
+  voucherLineId: string;
+  voucherId: string;
+  voucherNo: string;
+  voucherDate: string;
+  chequeNo: string | null;
+  chequeDate: string | null;
+  clearedOnDate: string | null;
+  deposits: number;
+  withdrawals: number;
+  remark: string | null;
+}
+
+export interface BankReconciliationStatementDto {
+  bankAccountId: string;
+  bankAccountName: string;
+  asOnDate: string;
+  openingBalancePerBooks: number;
+  closingBalancePerBooks: number;
+  addUnclearedDeposits: number;
+  lessUnclearedWithdrawals: number;
+  closingBalancePerPassBook: number;
 }

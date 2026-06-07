@@ -8,6 +8,7 @@ import {
 import { seedDefaultChartOfAccounts } from './coa-seed.js';
 
 const client = new PrismaClient();
+const testSuffix = `tariff-${Date.now()}`;
 
 describe('resolveTariffForMember', () => {
   let financialYearId: string;
@@ -41,8 +42,10 @@ describe('resolveTariffForMember', () => {
       })
     ).id;
 
-    await client.societyParameters.create({
-      data: {
+    await client.societyParameters.upsert({
+      where: { id: 'singleton' },
+      create: {
+        id: 'singleton',
         societyIdentityId: identity.id,
         tariffStructureBasis: JSON.stringify(['UNIT', 'BUILDING']),
         suppressZeroTariffs: true,
@@ -50,13 +53,18 @@ describe('resolveTariffForMember', () => {
         createdBy: 'test',
         updatedBy: 'test',
       },
+      update: {
+        societyIdentityId: identity.id,
+        tariffStructureBasis: JSON.stringify(['UNIT', 'BUILDING']),
+        updatedBy: 'test',
+      },
     });
 
     const building = await client.building.create({
       data: {
         financialYearId,
-        shortName: 'A',
-        fullName: 'Block A',
+        shortName: `B-${testSuffix}`,
+        fullName: `Block ${testSuffix}`,
         createdBy: 'test',
         updatedBy: 'test',
       },
@@ -66,8 +74,8 @@ describe('resolveTariffForMember', () => {
     const wing = await client.wing.create({
       data: {
         buildingId,
-        shortName: 'W1',
-        fullName: 'Wing 1',
+        shortName: `W-${testSuffix}`,
+        fullName: `Wing ${testSuffix}`,
         createdBy: 'test',
         updatedBy: 'test',
       },
@@ -78,7 +86,7 @@ describe('resolveTariffForMember', () => {
       data: {
         buildingId,
         wingId,
-        unitNo: 'A-001',
+        unitNo: `U-${testSuffix}`,
         serialNo: 1,
         createdBy: 'test',
         updatedBy: 'test',

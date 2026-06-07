@@ -8,6 +8,7 @@ interface AccountPickerModalProps {
   kind?: CoaPickerKind;
   categoryId?: AccountCategoryType;
   groupId?: string;
+  pettyCashOnly?: boolean;
   onClose: () => void;
   onSelect?: (item: AccountPickerItem) => void;
 }
@@ -18,6 +19,7 @@ export function AccountPickerModal({
   kind = 'ACCOUNT',
   categoryId,
   groupId,
+  pettyCashOnly,
   onClose,
   onSelect,
 }: AccountPickerModalProps): React.ReactElement | null {
@@ -33,7 +35,7 @@ export function AccountPickerModal({
     setQuery('');
     setError(null);
     void search('');
-  }, [open, kind, categoryId, groupId]);
+  }, [open, kind, categoryId, groupId, pettyCashOnly]);
 
   const search = async (value: string): Promise<void> => {
     setLoading(true);
@@ -42,6 +44,7 @@ export function AccountPickerModal({
       activeOnly: true,
       categoryId,
       groupId,
+      pettyCashOnly,
     });
     setLoading(false);
     if (!response.success || !response.data) {

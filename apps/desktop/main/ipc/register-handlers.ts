@@ -47,6 +47,32 @@ import {
   tariffReadOptions,
   tariffWriteOptions,
 } from './handlers/tariff-handler.js';
+import {
+  billingHandlers,
+  billingCreateOptions,
+  billingReadOptions,
+} from './handlers/billing-handler.js';
+import {
+  voucherHandlers,
+  voucherCreateOptions,
+  voucherReadOptions,
+} from './handlers/voucher-handler.js';
+import {
+  pettyCashHandlers,
+  pettyCashCreateOptions,
+  pettyCashReadOptions,
+} from './handlers/pettycash-handler.js';
+import {
+  adjustmentHandlers,
+  adjustmentCreateOptions,
+  adjustmentDeleteOptions,
+  adjustmentReadOptions,
+} from './handlers/adjustment-handler.js';
+import {
+  bankRecHandlers,
+  bankRecReadOptions,
+  bankRecWriteOptions,
+} from './handlers/bankrec-handler.js';
 import { sessionManager } from '../session/session-manager.js';
 
 const publicOptions = {
@@ -451,6 +477,118 @@ export function registerIpcHandlers(appConfig: AppConfigStore): void {
   ];
 
   for (const entry of tariffChannels) {
+    ipcMain.handle(entry.channel, async (event, request) =>
+      withIpcPipeline(request, sessionManager.get(), event, {
+        ...entry.options,
+        handler: entry.handler,
+      }),
+    );
+  }
+
+  const billingOptions = { ...billingReadOptions, requireSession: true };
+
+  const billingChannels: Array<{
+    channel: string;
+    options: typeof billingOptions;
+    handler: (typeof billingHandlers)[keyof typeof billingHandlers];
+  }> = [
+    { channel: IpcChannels.BILLING_LIST_PERIODS, options: billingOptions, handler: billingHandlers.listPeriods },
+    { channel: IpcChannels.BILLING_GET_NEXT_PERIOD, options: billingOptions, handler: billingHandlers.getNextPeriod },
+    { channel: IpcChannels.BILLING_LIST_REGULAR, options: billingOptions, handler: billingHandlers.listRegularBills },
+    { channel: IpcChannels.BILLING_GET_REGULAR, options: billingOptions, handler: billingHandlers.getRegularBill },
+    { channel: IpcChannels.BILLING_PREVIEW_REGULAR, options: billingOptions, handler: billingHandlers.previewRegularBill },
+    { channel: IpcChannels.BILLING_SAVE_REGULAR, options: { ...billingCreateOptions, requireSession: true }, handler: billingHandlers.saveRegularBill },
+    { channel: IpcChannels.BILLING_GET_INTEREST_DETAIL, options: billingOptions, handler: billingHandlers.getInterestDetail },
+    { channel: IpcChannels.BILLING_GENERATE_BULK_REGULAR, options: { ...billingCreateOptions, requireSession: true }, handler: billingHandlers.generateBulkRegular },
+    { channel: IpcChannels.BILLING_GET_SETTLEMENTS, options: billingOptions, handler: billingHandlers.getBillSettlements },
+    { channel: IpcChannels.BILLING_LIST_SUPPLEMENTARY, options: billingOptions, handler: billingHandlers.listSupplementaryBills },
+    { channel: IpcChannels.BILLING_GET_SUPPLEMENTARY, options: billingOptions, handler: billingHandlers.getSupplementaryBill },
+    { channel: IpcChannels.BILLING_PREVIEW_SUPPLEMENTARY, options: billingOptions, handler: billingHandlers.previewSupplementaryBill },
+    { channel: IpcChannels.BILLING_SAVE_SUPPLEMENTARY, options: { ...billingCreateOptions, requireSession: true }, handler: billingHandlers.saveSupplementaryBill },
+  ];
+
+  for (const entry of billingChannels) {
+    ipcMain.handle(entry.channel, async (event, request) =>
+      withIpcPipeline(request, sessionManager.get(), event, {
+        ...entry.options,
+        handler: entry.handler,
+      }),
+    );
+  }
+
+  const voucherOptions = { ...voucherReadOptions, requireSession: true };
+
+  const voucherChannels: Array<{
+    channel: string;
+    options: typeof voucherOptions;
+    handler: (typeof voucherHandlers)[keyof typeof voucherHandlers];
+  }> = [
+    { channel: IpcChannels.VOUCHER_LIST, options: voucherOptions, handler: voucherHandlers.list },
+    { channel: IpcChannels.VOUCHER_GET, options: voucherOptions, handler: voucherHandlers.get },
+    { channel: IpcChannels.VOUCHER_PREVIEW_POST, options: voucherOptions, handler: voucherHandlers.previewPost },
+    { channel: IpcChannels.VOUCHER_POST, options: { ...voucherCreateOptions, requireSession: true }, handler: voucherHandlers.post },
+    { channel: IpcChannels.VOUCHER_LOOKUP_MICR, options: voucherOptions, handler: voucherHandlers.lookupMicr },
+    { channel: IpcChannels.VOUCHER_VALIDATE_MANUAL_NO, options: voucherOptions, handler: voucherHandlers.validateManualNo },
+    { channel: IpcChannels.VOUCHER_GET_OPEN_BILLS, options: voucherOptions, handler: voucherHandlers.getOpenBillsForMember },
+    { channel: IpcChannels.VOUCHER_ALLOCATE_SETTLEMENT, options: voucherOptions, handler: voucherHandlers.allocateSettlement },
+    { channel: IpcChannels.VOUCHER_LINK_GENERAL_BILL, options: { ...voucherCreateOptions, requireSession: true }, handler: voucherHandlers.linkGeneralBill },
+    { channel: IpcChannels.VOUCHER_CANCEL, options: { ...voucherCreateOptions, requireSession: true }, handler: voucherHandlers.cancel },
+    { channel: IpcChannels.VOUCHER_GET_CHEQUE_PRINT_DATA, options: voucherOptions, handler: voucherHandlers.getChequePrintData },
+  ];
+
+  for (const entry of voucherChannels) {
+    ipcMain.handle(entry.channel, async (event, request) =>
+      withIpcPipeline(request, sessionManager.get(), event, {
+        ...entry.options,
+        handler: entry.handler,
+      }),
+    );
+  }
+
+  const pettyCashOptions = { ...pettyCashReadOptions, requireSession: true };
+  const pettyCashChannels = [
+    { channel: IpcChannels.PETTYCASH_LIST, options: pettyCashOptions, handler: pettyCashHandlers.list },
+    { channel: IpcChannels.PETTYCASH_POST, options: { ...pettyCashCreateOptions, requireSession: true }, handler: pettyCashHandlers.post },
+  ];
+
+  for (const entry of pettyCashChannels) {
+    ipcMain.handle(entry.channel, async (event, request) =>
+      withIpcPipeline(request, sessionManager.get(), event, {
+        ...entry.options,
+        handler: entry.handler,
+      }),
+    );
+  }
+
+  const adjustmentOptions = { ...adjustmentReadOptions, requireSession: true };
+  const adjustmentChannels = [
+    { channel: IpcChannels.ADJUSTMENT_POST, options: { ...adjustmentCreateOptions, requireSession: true }, handler: adjustmentHandlers.post },
+    { channel: IpcChannels.ADJUSTMENT_PREVIEW_PARTIAL_WAIVER, options: adjustmentOptions, handler: adjustmentHandlers.previewPartialWaiver },
+    { channel: IpcChannels.ADJUSTMENT_PARTIAL_WAIVER, options: { ...adjustmentCreateOptions, requireSession: true }, handler: adjustmentHandlers.partialWaiver },
+    { channel: IpcChannels.ADJUSTMENT_CANCEL, options: { ...adjustmentDeleteOptions, requireSession: true }, handler: adjustmentHandlers.cancel },
+  ];
+
+  for (const entry of adjustmentChannels) {
+    ipcMain.handle(entry.channel, async (event, request) =>
+      withIpcPipeline(request, sessionManager.get(), event, {
+        ...entry.options,
+        handler: entry.handler,
+      }),
+    );
+  }
+
+  const bankRecOptions = { ...bankRecReadOptions, requireSession: true };
+  const bankRecChannels = [
+    { channel: IpcChannels.BANKREC_LIST_ITEMS, options: bankRecOptions, handler: bankRecHandlers.listItems },
+    {
+      channel: IpcChannels.BANKREC_BULK_SET_CLEARING_DATE,
+      options: { ...bankRecWriteOptions, requireSession: true },
+      handler: bankRecHandlers.bulkSetClearingDate,
+    },
+    { channel: IpcChannels.BANKREC_GET_STATEMENT, options: bankRecOptions, handler: bankRecHandlers.getStatement },
+  ];
+
+  for (const entry of bankRecChannels) {
     ipcMain.handle(entry.channel, async (event, request) =>
       withIpcPipeline(request, sessionManager.get(), event, {
         ...entry.options,

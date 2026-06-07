@@ -132,6 +132,34 @@ export function BillRegisterMappingScreen(): React.ReactElement {
               <td className="grid-actions">
                 <button
                   type="button"
+                  disabled={disabled || index === 0}
+                  onClick={() => {
+                    const next = [...rows];
+                    const temp = next[index];
+                    next[index] = next[index - 1]!;
+                    next[index - 1] = temp!;
+                    setRows(next.map((item, rowIndex) => ({ ...item, srNo: rowIndex + 1 })));
+                    setEditing(true);
+                  }}
+                >
+                  ↑
+                </button>
+                <button
+                  type="button"
+                  disabled={disabled || index === rows.length - 1}
+                  onClick={() => {
+                    const next = [...rows];
+                    const temp = next[index];
+                    next[index] = next[index + 1]!;
+                    next[index + 1] = temp!;
+                    setRows(next.map((item, rowIndex) => ({ ...item, srNo: rowIndex + 1 })));
+                    setEditing(true);
+                  }}
+                >
+                  ↓
+                </button>
+                <button
+                  type="button"
                   disabled={disabled}
                   onClick={() => {
                     setRows((current) =>
@@ -142,7 +170,7 @@ export function BillRegisterMappingScreen(): React.ReactElement {
                     setEditing(true);
                   }}
                 >
-                  Remove
+                  ×
                 </button>
               </td>
             </tr>
