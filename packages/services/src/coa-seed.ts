@@ -311,7 +311,7 @@ export async function seedDefaultChartOfAccounts(
     incomeExpenseSubgroupId: incomeSubgroup.id,
     interestAccountId: accountIds.INTR!,
     adjustmentAccountId: adjustmentAccount.id,
-    nonOccupancyAccountId: accountIds.NOC!,
+    nonOccupancyAccountId: accountIds.NOCC!,
     serviceTaxAccountId: accountIds.STAX!,
     educationCessAccountId: accountIds.EDCS!,
     cashBankGroupId: currentAssets.id,

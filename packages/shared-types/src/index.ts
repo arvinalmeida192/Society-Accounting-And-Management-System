@@ -122,6 +122,38 @@ export const IpcChannels = {
   TENANT_SAVE: 'tenant:save',
   TENANT_ARCHIVE: 'tenant:archive',
   TENANT_VALIDATE_FOR_OCCUPANCY: 'tenant:validateForOccupancy',
+  MASTERS_BANK_LIST: 'masters:bank:list',
+  MASTERS_BANK_GET: 'masters:bank:get',
+  MASTERS_BANK_SAVE: 'masters:bank:save',
+  MASTERS_BANK_DELETE: 'masters:bank:delete',
+  MASTERS_BANK_LIST_MICR: 'masters:bank:listMicr',
+  MASTERS_BANK_SAVE_MICR: 'masters:bank:saveMicr',
+  MASTERS_BANK_DELETE_MICR: 'masters:bank:deleteMicr',
+  MASTERS_BANK_LOOKUP_MICR: 'masters:bank:lookupMicr',
+  MASTERS_NARRATION_LIST: 'masters:narration:list',
+  MASTERS_NARRATION_SAVE: 'masters:narration:save',
+  MASTERS_NARRATION_DELETE: 'masters:narration:delete',
+  MASTERS_ADDRESS_BOOK_LIST: 'masters:addressBook:list',
+  MASTERS_ADDRESS_BOOK_SAVE: 'masters:addressBook:save',
+  MASTERS_ADDRESS_BOOK_DELETE: 'masters:addressBook:delete',
+  MASTERS_CHEQUE_REASON_LIST: 'masters:chequeReason:list',
+  MASTERS_CHEQUE_REASON_SAVE: 'masters:chequeReason:save',
+  MASTERS_CHEQUE_REASON_DELETE: 'masters:chequeReason:delete',
+  MASTERS_CHEQUE_REASON_LIST_DISHONOURED: 'masters:chequeReason:listDishonoured',
+  MASTERS_CONTRACTOR_LIST: 'masters:contractor:list',
+  MASTERS_CONTRACTOR_SAVE: 'masters:contractor:save',
+  MASTERS_CONTRACTOR_DELETE: 'masters:contractor:delete',
+  TARIFF_LIST_DEFINITIONS: 'tariff:listDefinitions',
+  TARIFF_GET_DEFINITION: 'tariff:getDefinition',
+  TARIFF_SAVE_DEFINITION: 'tariff:saveDefinition',
+  TARIFF_CLONE_DEFINITION: 'tariff:cloneDefinition',
+  TARIFF_REORDER_LINES: 'tariff:reorderLines',
+  TARIFF_RESOLVE_FOR_MEMBER: 'tariff:resolveForMember',
+  TARIFF_LIST_SETTLEMENT_SEQUENCES: 'tariff:listSettlementSequences',
+  TARIFF_GET_SETTLEMENT_SEQUENCE: 'tariff:getSettlementSequence',
+  TARIFF_SAVE_SETTLEMENT_SEQUENCE: 'tariff:saveSettlementSequence',
+  TARIFF_LIST_BILL_REGISTER_MAPPING: 'tariff:listBillRegisterMapping',
+  TARIFF_SAVE_BILL_REGISTER_MAPPING: 'tariff:saveBillRegisterMapping',
 } as const;
 
 export type IpcChannel = (typeof IpcChannels)[keyof typeof IpcChannels] | string;
@@ -999,4 +1031,244 @@ export type TenantSaveDto = Omit<
 export interface TenantOccupancyResult {
   hasActiveTenant: boolean;
   tenant?: { id: string; tenantName: string };
+}
+
+export enum VoucherType {
+  RECEIPT = 'RECEIPT',
+  PAYMENT = 'PAYMENT',
+  CONTRA = 'CONTRA',
+  JV = 'JV',
+  DN = 'DN',
+  CN = 'CN',
+  PETTY_CASH = 'PETTY_CASH',
+}
+
+export enum PartyType {
+  VENDOR = 'VENDOR',
+  CONTRACTOR = 'CONTRACTOR',
+  SOCIETY_BANK = 'SOCIETY_BANK',
+  OTHER = 'OTHER',
+}
+
+export interface BankMasterDto extends AuditFieldsDto {
+  id: string;
+  bankName: string;
+  branchName: string;
+  address: string | null;
+  telephone: string | null;
+  fax: string | null;
+  email: string | null;
+  url: string | null;
+  contactPerson: string | null;
+}
+
+export type BankMasterSaveDto = Omit<BankMasterDto, keyof AuditFieldsDto> & { id?: string };
+
+export interface BankMicrCodeDto extends AuditFieldsDto {
+  id: string;
+  bankMasterId: string;
+  micrCode: string;
+  isActive: boolean;
+}
+
+export type BankMicrCodeSaveDto = Omit<BankMicrCodeDto, keyof AuditFieldsDto> & { id?: string };
+
+export interface MicrLookupResult {
+  micrCode: string;
+  bankMasterId: string;
+  bankName: string;
+  branchName: string;
+  address: string | null;
+}
+
+export interface NarrationMasterDto extends AuditFieldsDto {
+  id: string;
+  voucherTableType: VoucherType;
+  shortCode: string;
+  narrationText: string;
+  isActive: boolean;
+}
+
+export type NarrationMasterSaveDto = Omit<NarrationMasterDto, keyof AuditFieldsDto> & { id?: string };
+
+export interface AddressBookEntryDto extends AuditFieldsDto {
+  id: string;
+  accountMasterId: string;
+  accountParticulars: string;
+  partyType: PartyType;
+  officeAddress: string | null;
+  otherAddress: string | null;
+  bankBranchName: string | null;
+  bankAccountNo: string | null;
+  pan: string | null;
+}
+
+export type AddressBookEntrySaveDto = Omit<
+  AddressBookEntryDto,
+  keyof AuditFieldsDto | 'accountParticulars'
+> & { id?: string };
+
+export interface ChequeCancellationReasonDto extends AuditFieldsDto {
+  id: string;
+  reasonCode: string;
+  reasonDescription: string;
+  category: string | null;
+}
+
+export type ChequeCancellationReasonSaveDto = Omit<
+  ChequeCancellationReasonDto,
+  keyof AuditFieldsDto
+> & { id?: string };
+
+export interface DishonouredChequeDto {
+  id: string;
+  chequeNo: string;
+  chequeDate: string;
+  cancelledOn: string | null;
+  bankName: string | null;
+  branchName: string | null;
+  drawerName: string | null;
+  voucherId: string;
+  voucherDate: string;
+  accountParticulars: string;
+  amount: number;
+}
+
+export interface ContractorDetailDto extends AuditFieldsDto {
+  id: string;
+  contractorName: string;
+  contractType: string | null;
+  contractDate: string | null;
+  buildingName: string | null;
+  address: string | null;
+  telephone: string | null;
+}
+
+export type ContractorDetailSaveDto = Omit<ContractorDetailDto, keyof AuditFieldsDto> & { id?: string };
+
+export enum TariffScopeLevel {
+  BUILDING = 'BUILDING',
+  WING = 'WING',
+  UNIT = 'UNIT',
+  COMPOSITION = 'COMPOSITION',
+  TYPE = 'TYPE',
+  AREA = 'AREA',
+  PERSON = 'PERSON',
+  FLOOR = 'FLOOR',
+}
+
+export enum TariffLineType {
+  BOTH = 'BOTH',
+  TENANT = 'TENANT',
+}
+
+export enum BillRegisterDisplayMode {
+  SHORT_CODE = 'SHORT_CODE',
+  FULL_NAME = 'FULL_NAME',
+}
+
+export interface TariffLineDto extends AuditFieldsDto {
+  id: string;
+  tariffDefinitionId: string;
+  srNo: number;
+  accountMasterId: string;
+  accountParticulars: string;
+  accountShortCode: string | null;
+  amount: number;
+  tariffType: TariffLineType;
+  remark: string | null;
+}
+
+export interface TariffDefinitionDto extends AuditFieldsDto {
+  id: string;
+  financialYearId: string;
+  effectiveDate: string;
+  scopeLevel: TariffScopeLevel;
+  scopeRefId: string | null;
+  scopeLabel: string | null;
+  isAdvanceMethod: boolean;
+  isReadOnly: boolean;
+  lines: TariffLineDto[];
+}
+
+export interface TariffDefinitionSaveDto {
+  id?: string;
+  effectiveDate: string;
+  scopeLevel: TariffScopeLevel;
+  scopeRefId?: string | null;
+  isAdvanceMethod?: boolean;
+  lines: Array<{
+    id?: string;
+    srNo: number;
+    accountMasterId: string;
+    amount: number;
+    tariffType: TariffLineType;
+    remark?: string | null;
+  }>;
+}
+
+export interface TariffResolvedLineDto {
+  srNo: number;
+  accountMasterId: string;
+  accountParticulars: string;
+  accountShortCode: string | null;
+  amount: number;
+  tariffType: TariffLineType;
+  remark: string | null;
+}
+
+export interface TariffResolveResult {
+  sourceDefinitionId: string;
+  scopeLevel: TariffScopeLevel;
+  scopeRefId: string | null;
+  isAdvanceMethod: boolean;
+  lines: TariffResolvedLineDto[];
+}
+
+export interface TariffSettlementSequenceLineDto extends AuditFieldsDto {
+  id: string;
+  sequenceId: string;
+  srNo: number;
+  accountMasterId: string;
+  accountParticulars: string;
+  accountShortCode: string | null;
+  remark: string | null;
+}
+
+export interface TariffSettlementSequenceDto extends AuditFieldsDto {
+  id: string;
+  financialYearId: string;
+  effectiveDate: string;
+  isReadOnly: boolean;
+  lines: TariffSettlementSequenceLineDto[];
+}
+
+export interface TariffSettlementSequenceSaveDto {
+  id?: string;
+  effectiveDate: string;
+  lines: Array<{
+    id?: string;
+    srNo: number;
+    accountMasterId: string;
+    remark?: string | null;
+  }>;
+}
+
+export interface TariffBillRegisterMappingDto extends AuditFieldsDto {
+  id: string;
+  financialYearId: string;
+  srNo: number;
+  accountMasterId: string;
+  accountParticulars: string;
+  accountShortCode: string | null;
+  displayMode: BillRegisterDisplayMode;
+}
+
+export interface TariffBillRegisterMappingSaveDto {
+  rows: Array<{
+    id?: string;
+    srNo: number;
+    accountMasterId: string;
+    displayMode: BillRegisterDisplayMode;
+  }>;
 }

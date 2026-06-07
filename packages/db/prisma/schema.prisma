@@ -1,4 +1,4 @@
-// SAMS Database Schema — Phases 1–6
+// SAMS Database Schema — Phases 1–8
 
 generator client {
   provider = "prisma-client-js"
@@ -61,6 +61,27 @@ enum SimpleInterestSubType {
 enum TariffMethod {
   SIMPLE
   ADVANCE
+}
+
+enum TariffScopeLevel {
+  BUILDING
+  WING
+  UNIT
+  COMPOSITION
+  TYPE
+  AREA
+  PERSON
+  FLOOR
+}
+
+enum TariffLineType {
+  BOTH
+  TENANT
+}
+
+enum BillRegisterDisplayMode {
+  SHORT_CODE
+  FULL_NAME
 }
 
 enum RebateType {
@@ -140,6 +161,23 @@ enum MaritalStatus {
 enum OpeningBalanceType {
   REGULAR
   SUPPLEMENTARY
+}
+
+enum VoucherType {
+  RECEIPT
+  PAYMENT
+  CONTRA
+  JV
+  DN
+  CN
+  PETTY_CASH
+}
+
+enum PartyType {
+  VENDOR
+  CONTRACTOR
+  SOCIETY_BANK
+  OTHER
 }
 
 model SystemMeta {
@@ -239,9 +277,12 @@ model FinancialYear {
   previousYearDbPath String?
   societyIdentityId  String
   societyIdentity    SocietyIdentity @relation(fields: [societyIdentityId], references: [id])
-  billingPeriods     BillingPeriodCalendar[]
-  vouchers           Voucher[]
-  buildings          Building[]
+  billingPeriods           BillingPeriodCalendar[]
+  vouchers                 Voucher[]
+  buildings                Building[]
+  tariffDefinitions        TariffDefinition[]
+  tariffSettlementSequences TariffSettlementSequence[]
+  tariffBillRegisterMappings TariffBillRegisterMapping[]
   createdAt          DateTime        @default(now())
   createdBy          String
   updatedAt          DateTime        @updatedAt
@@ -453,9 +494,13 @@ model AccountMaster {
   archivedAt           DateTime?
   archivedBy           String?
   memberSubsidiaryId   String?         @unique
-  memberSubsidiary     Member?         @relation("MemberSubsidiaryLedger", fields: [memberSubsidiaryId], references: [id])
-  voucherLines         VoucherLine[]
-  parkingSpaces        ParkingSpace[]
+  memberSubsidiary     Member?            @relation("MemberSubsidiaryLedger", fields: [memberSubsidiaryId], references: [id])
+  addressBookEntry              AddressBookEntry?
+  voucherLines                  VoucherLine[]
+  parkingSpaces                 ParkingSpace[]
+  tariffLines                   TariffLine[]
+  tariffSettlementSequenceLines TariffSettlementSequenceLine[]
+  tariffBillRegisterMappings    TariffBillRegisterMapping[]
   createdAt            DateTime        @default(now())
   createdBy            String
   updatedAt            DateTime        @updatedAt
@@ -493,6 +538,7 @@ model VoucherLine {
   drAmount        Decimal       @default(0)
   crAmount        Decimal       @default(0)
   particulars     String?
+  chequeDetail    ChequeDetail?
   createdAt       DateTime      @default(now())
   createdBy       String
   updatedAt       DateTime      @updatedAt
@@ -885,4 +931,214 @@ model MemberParkingAssignment {
   updatedBy      String
 
   @@map("member_parking_assignments")
+}
+
+model BankMaster {
+  id            String          @id @default(cuid())
+  bankName      String
+  branchName    String
+  address       String?
+  telephone     String?
+  fax           String?
+  email         String?
+  url           String?
+  contactPerson String?
+  micrCodes     BankMicrCode[]
+  createdAt     DateTime        @default(now())
+  createdBy     String
+  updatedAt     DateTime        @updatedAt
+  updatedBy     String
+
+  @@unique([bankName, branchName])
+  @@map("bank_masters")
+}
+
+model BankMicrCode {
+  id           String     @id @default(cuid())
+  bankMasterId String
+  bankMaster   BankMaster @relation(fields: [bankMasterId], references: [id], onDelete: Cascade)
+  micrCode     String     @unique
+  isActive     Boolean    @default(true)
+  createdAt    DateTime   @default(now())
+  createdBy    String
+  updatedAt    DateTime   @updatedAt
+  updatedBy    String
+
+  @@map("bank_micr_codes")
+}
+
+model NarrationMaster {
+  id               String      @id @default(cuid())
+  voucherTableType VoucherType
+  shortCode        String
+  narrationText    String
+  isActive         Boolean     @default(true)
+  createdAt        DateTime    @default(now())
+  createdBy        String
+  updatedAt        DateTime    @updatedAt
+  updatedBy        String
+
+  @@unique([voucherTableType, shortCode])
+  @@map("narration_masters")
+}
+
+model AddressBookEntry {
+  id              String        @id @default(cuid())
+  accountMasterId String
+  accountMaster   AccountMaster @relation(fields: [accountMasterId], references: [id])
+  partyType       PartyType
+  officeAddress   String?
+  otherAddress    String?
+  bankBranchName  String?
+  bankAccountNo   String?
+  pan             String?
+  createdAt       DateTime      @default(now())
+  createdBy       String
+  updatedAt       DateTime      @updatedAt
+  updatedBy       String
+
+  @@unique([accountMasterId])
+  @@map("address_book_entries")
+}
+
+model ChequeCancellationReason {
+  id                String         @id @default(cuid())
+  reasonCode        String         @unique
+  reasonDescription String
+  category          String?
+  chequeDetails     ChequeDetail[]
+  createdAt         DateTime       @default(now())
+  createdBy         String
+  updatedAt         DateTime       @updatedAt
+  updatedBy         String
+
+  @@map("cheque_cancellation_reasons")
+}
+
+model ContractorDetail {
+  id             String    @id @default(cuid())
+  contractorName String
+  contractType   String?
+  contractDate   DateTime?
+  buildingName   String?
+  address        String?
+  telephone      String?
+  createdAt      DateTime  @default(now())
+  createdBy      String
+  updatedAt      DateTime  @updatedAt
+  updatedBy      String
+
+  @@map("contractor_details")
+}
+
+/** Minimal cheque shell for dishonoured register — expanded in Phase 11 */
+model ChequeDetail {
+  id                   String                    @id @default(cuid())
+  voucherLineId        String                    @unique
+  voucherLine          VoucherLine               @relation(fields: [voucherLineId], references: [id], onDelete: Cascade)
+  chequeNo             String
+  chequeDate           DateTime
+  bankName             String?
+  branchName           String?
+  drawerName           String?
+  micrCode             String?
+  clearedOnDate        DateTime?
+  cancelledOn          DateTime?
+  cancellationReasonId String?
+  cancellationReason   ChequeCancellationReason? @relation(fields: [cancellationReasonId], references: [id])
+  createdAt            DateTime                  @default(now())
+  createdBy            String
+  updatedAt            DateTime                  @updatedAt
+  updatedBy            String
+
+  @@index([cancellationReasonId])
+  @@map("cheque_details")
+}
+
+model TariffDefinition {
+  id               String           @id @default(cuid())
+  financialYearId  String
+  financialYear    FinancialYear    @relation(fields: [financialYearId], references: [id])
+  effectiveDate    DateTime
+  scopeLevel       TariffScopeLevel
+  scopeRefId       String?
+  isAdvanceMethod  Boolean          @default(false)
+  lines            TariffLine[]
+  createdAt        DateTime         @default(now())
+  createdBy        String
+  updatedAt        DateTime         @updatedAt
+  updatedBy        String
+
+  @@unique([financialYearId, scopeLevel, scopeRefId, effectiveDate])
+  @@index([scopeLevel, scopeRefId])
+  @@map("tariff_definitions")
+}
+
+model TariffLine {
+  id                 String           @id @default(cuid())
+  tariffDefinitionId String
+  tariffDefinition   TariffDefinition @relation(fields: [tariffDefinitionId], references: [id], onDelete: Cascade)
+  srNo               Int
+  accountMasterId    String
+  accountMaster      AccountMaster    @relation(fields: [accountMasterId], references: [id])
+  amount             Decimal
+  tariffType         TariffLineType   @default(BOTH)
+  remark             String?
+  createdAt          DateTime         @default(now())
+  createdBy          String
+  updatedAt          DateTime         @updatedAt
+  updatedBy          String
+
+  @@unique([tariffDefinitionId, srNo])
+  @@map("tariff_lines")
+}
+
+model TariffSettlementSequence {
+  id              String                       @id @default(cuid())
+  financialYearId String
+  financialYear   FinancialYear                @relation(fields: [financialYearId], references: [id])
+  effectiveDate   DateTime
+  lines           TariffSettlementSequenceLine[]
+  createdAt       DateTime                     @default(now())
+  createdBy       String
+  updatedAt       DateTime                     @updatedAt
+  updatedBy       String
+
+  @@unique([financialYearId, effectiveDate])
+  @@map("tariff_settlement_sequences")
+}
+
+model TariffSettlementSequenceLine {
+  id              String                   @id @default(cuid())
+  sequenceId      String
+  sequence        TariffSettlementSequence @relation(fields: [sequenceId], references: [id], onDelete: Cascade)
+  srNo            Int
+  accountMasterId String
+  accountMaster   AccountMaster            @relation(fields: [accountMasterId], references: [id])
+  remark          String?
+  createdAt       DateTime                 @default(now())
+  createdBy       String
+  updatedAt       DateTime                 @updatedAt
+  updatedBy       String
+
+  @@unique([sequenceId, srNo])
+  @@map("tariff_settlement_sequence_lines")
+}
+
+model TariffBillRegisterMapping {
+  id              String                  @id @default(cuid())
+  financialYearId String
+  financialYear   FinancialYear           @relation(fields: [financialYearId], references: [id])
+  srNo            Int
+  accountMasterId String
+  accountMaster   AccountMaster           @relation(fields: [accountMasterId], references: [id])
+  displayMode     BillRegisterDisplayMode @default(SHORT_CODE)
+  createdAt       DateTime                @default(now())
+  createdBy       String
+  updatedAt       DateTime                @updatedAt
+  updatedBy       String
+
+  @@unique([financialYearId, srNo])
+  @@unique([financialYearId, accountMasterId])
+  @@map("tariff_bill_register_mappings")
 }

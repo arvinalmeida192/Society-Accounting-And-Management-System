@@ -33,11 +33,31 @@ const explorerNodes = [
     ],
   },
   {
+    id: 'masters',
+    label: 'Masters',
+    children: [
+      { id: 'mst-bank', label: 'Banks', route: '/app/masters/banks' },
+      { id: 'mst-narr', label: 'Narrations', route: '/app/masters/narrations' },
+      { id: 'mst-addr', label: 'Address Book', route: '/app/masters/address-book' },
+      { id: 'mst-chq', label: 'Cheque Reasons', route: '/app/masters/cheque-reasons' },
+      { id: 'mst-cont', label: 'Contractors', route: '/app/masters/contractors' },
+    ],
+  },
+  {
     id: 'members',
     label: 'Members',
     children: [
       { id: 'mem-reg', label: 'Member Register', route: '/app/members/register' },
       { id: 'mem-tenant', label: 'Tenants', route: '/app/members/tenants' },
+    ],
+  },
+  {
+    id: 'billing',
+    label: 'Billing',
+    children: [
+      { id: 'tar-def', label: 'Tariff Definition', route: '/app/billing/tariffs' },
+      { id: 'tar-settle', label: 'Settlement Sequence', route: '/app/billing/settlement-sequence' },
+      { id: 'tar-map', label: 'Bill Register Mapping', route: '/app/billing/bill-register-mapping' },
     ],
   },
   {

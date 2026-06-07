@@ -8,7 +8,7 @@ Offline-first Electron desktop application for co-operative housing society acco
 - `SDD.md` — Software Design Document
 - `Development_Plan.md` — Phased implementation plan
 
-## Current status: Phase 6 complete
+## Current status: Phase 8 complete
 
 | Phase | Scope |
 | ----- | ----- |
@@ -18,6 +18,8 @@ Offline-first Electron desktop application for co-operative housing society acco
 | 4 | Chart of Accounts (four-tier hierarchy), ledger balance, default CoA seed, SP-012 linkages |
 | 5 | Property tree (buildings, wings, units), reference masters, parking tariffs/spaces/assignments |
 | 6 | Members, tenants, opening balances with JV posting, member subsidiary ledgers |
+| 7 | Miscellaneous masters: banks/MICR, narrations, address book, cheque reasons, contractors |
+| 8 | Tariff definitions, settlement sequence, bill register mapping, tariff resolution engine |
 
 ## Setup
 
@@ -38,6 +40,8 @@ npm run dev
 5. Use **Explorer → Accounting → Chart of Accounts** to review or extend the default ledger structure.
 6. Use **Explorer → Property** for buildings, wings, units, reference masters, and parking setup.
 7. Use **Explorer → Members** for member register, tenants, and opening balances.
+8. Use **Explorer → Masters** for banks, narrations, address book, cheque reasons, and contractors.
+9. Use **Explorer → Billing** for tariff definitions, settlement sequence, and bill register column mapping.
 
 Each society/financial year is stored in its own `.sqlite` file.
 

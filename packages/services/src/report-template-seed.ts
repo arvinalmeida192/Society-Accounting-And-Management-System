@@ -122,4 +122,7 @@ export async function seedSocietyConfiguration(
     billFrequency: BillFrequency.MONTHLY,
     actorId,
   });
+
+  const { seedMiscellaneousMasters } = await import('./masters-seed.js');
+  await seedMiscellaneousMasters(client, actorId);
 }

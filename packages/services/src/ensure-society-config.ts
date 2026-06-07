@@ -25,4 +25,10 @@ export async function ensureSocietyConfiguration(client: PrismaClient): Promise<
 
   const { seedPropertyReferenceMasters } = await import('./property-reference-seed.js');
   await seedPropertyReferenceMasters(client);
+
+  const { seedMiscellaneousMasters } = await import('./masters-seed.js');
+  await seedMiscellaneousMasters(client);
+
+  const { seedDefaultTariffConfiguration } = await import('./tariff-seed.js');
+  await seedDefaultTariffConfiguration(client);
 }

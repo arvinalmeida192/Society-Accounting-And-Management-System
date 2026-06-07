@@ -8,6 +8,7 @@ const RESOURCES = {
   ACCOUNTING_COA: 'accounting.coa',
   PROPERTY: 'property',
   MEMBERS: 'members',
+  MASTERS: 'masters',
   VOUCHERS: 'vouchers',
   BILLING: 'billing',
   ADMIN_YEAR_END: 'admin.yearEnd',
@@ -55,6 +56,14 @@ const MATRIX: MatrixEntry[] = [
     accountant: [PermissionAction.CREATE, PermissionAction.READ, PermissionAction.UPDATE, PermissionAction.DELETE],
     operator: [PermissionAction.CREATE, PermissionAction.READ, PermissionAction.UPDATE],
     committee: [PermissionAction.READ],
+    auditor: [PermissionAction.READ],
+  },
+  {
+    resource: RESOURCES.MASTERS,
+    admin: [PermissionAction.CREATE, PermissionAction.READ, PermissionAction.UPDATE, PermissionAction.DELETE],
+    accountant: [PermissionAction.CREATE, PermissionAction.READ, PermissionAction.UPDATE, PermissionAction.DELETE],
+    operator: [PermissionAction.READ],
+    committee: [],
     auditor: [PermissionAction.READ],
   },
   {

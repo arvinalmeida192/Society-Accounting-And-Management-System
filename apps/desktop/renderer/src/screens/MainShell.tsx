@@ -20,7 +20,8 @@ function HomePane({ session }: { session: SessionDto }): React.ReactElement {
       <p className="muted">
         Society setup is under Explorer → Society Setup. Chart of Accounts is under Explorer →
         Accounting. Buildings, wings, units, and parking are under Explorer → Property. Members and
-        tenants are under Explorer → Members.
+        tenants are under Explorer → Members. Tariff configuration is under Explorer → Billing.
+        Banks, narrations, and other supporting masters are under Explorer → Masters.
       </p>
     </section>
   );
@@ -36,10 +37,18 @@ import { UnitsScreen } from './property/UnitsScreen';
 import { WingsScreen } from './property/WingsScreen';
 import { MembersRegisterScreen } from './members/MembersRegisterScreen';
 import { TenantsScreen } from './members/TenantsScreen';
+import { AddressBookScreen } from './masters/AddressBookScreen';
+import { BanksScreen } from './masters/BanksScreen';
+import { ChequeReasonsScreen } from './masters/ChequeReasonsScreen';
+import { ContractorsScreen } from './masters/ContractorsScreen';
+import { NarrationsScreen } from './masters/NarrationsScreen';
 import { SocietyIdentityScreen } from './society/SocietyIdentityScreen';
 import { SocietyParametersScreen } from './society/SocietyParametersScreen';
 import { PropertyInformationScreen } from './society/PropertyInformationScreen';
 import { ReportFormatsScreen } from './society/ReportFormatsScreen';
+import { BillRegisterMappingScreen } from './tariff/BillRegisterMappingScreen';
+import { SettlementSequenceScreen } from './tariff/SettlementSequenceScreen';
+import { TariffDefinitionScreen } from './tariff/TariffDefinitionScreen';
 
 function PlaceholderPane({ title }: { title: string }): React.ReactElement {
   return (
@@ -136,6 +145,14 @@ export function MainShell({ session }: MainShellProps): React.ReactElement {
             <Route path="property/parking-assignments" element={<ParkingAssignmentsScreen />} />
             <Route path="members/register" element={<MembersRegisterScreen />} />
             <Route path="members/tenants" element={<TenantsScreen />} />
+            <Route path="masters/banks" element={<BanksScreen />} />
+            <Route path="masters/narrations" element={<NarrationsScreen />} />
+            <Route path="masters/address-book" element={<AddressBookScreen />} />
+            <Route path="masters/cheque-reasons" element={<ChequeReasonsScreen />} />
+            <Route path="masters/contractors" element={<ContractorsScreen />} />
+            <Route path="billing/tariffs" element={<TariffDefinitionScreen />} />
+            <Route path="billing/settlement-sequence" element={<SettlementSequenceScreen />} />
+            <Route path="billing/bill-register-mapping" element={<BillRegisterMappingScreen />} />
             <Route path="reports" element={<PlaceholderPane title="Reports" />} />
             <Route path="*" element={<Navigate to="home" replace />} />
           </Routes>

@@ -34,6 +34,19 @@ import {
   memberReadOptions,
   memberWriteOptions,
 } from './handlers/member-handler.js';
+import {
+  mastersHandlers,
+  mastersCreateOptions,
+  mastersDeleteOptions,
+  mastersReadOptions,
+  mastersWriteOptions,
+} from './handlers/masters-handler.js';
+import {
+  tariffHandlers,
+  tariffCreateOptions,
+  tariffReadOptions,
+  tariffWriteOptions,
+} from './handlers/tariff-handler.js';
 import { sessionManager } from '../session/session-manager.js';
 
 const publicOptions = {
@@ -370,6 +383,74 @@ export function registerIpcHandlers(appConfig: AppConfigStore): void {
   ];
 
   for (const entry of memberChannels) {
+    ipcMain.handle(entry.channel, async (event, request) =>
+      withIpcPipeline(request, sessionManager.get(), event, {
+        ...entry.options,
+        handler: entry.handler,
+      }),
+    );
+  }
+
+  const mastersOptions = { ...mastersReadOptions, requireSession: true };
+
+  const mastersChannels: Array<{
+    channel: string;
+    options: typeof mastersOptions;
+    handler: (typeof mastersHandlers)[keyof typeof mastersHandlers];
+  }> = [
+    { channel: IpcChannels.MASTERS_BANK_LIST, options: mastersOptions, handler: mastersHandlers.listBanks },
+    { channel: IpcChannels.MASTERS_BANK_GET, options: mastersOptions, handler: mastersHandlers.getBank },
+    { channel: IpcChannels.MASTERS_BANK_SAVE, options: { ...mastersCreateOptions, requireSession: true }, handler: mastersHandlers.saveBank },
+    { channel: IpcChannels.MASTERS_BANK_DELETE, options: { ...mastersDeleteOptions, requireSession: true }, handler: mastersHandlers.deleteBank },
+    { channel: IpcChannels.MASTERS_BANK_LIST_MICR, options: mastersOptions, handler: mastersHandlers.listMicr },
+    { channel: IpcChannels.MASTERS_BANK_SAVE_MICR, options: { ...mastersWriteOptions, requireSession: true }, handler: mastersHandlers.saveMicr },
+    { channel: IpcChannels.MASTERS_BANK_DELETE_MICR, options: { ...mastersDeleteOptions, requireSession: true }, handler: mastersHandlers.deleteMicr },
+    { channel: IpcChannels.MASTERS_BANK_LOOKUP_MICR, options: mastersOptions, handler: mastersHandlers.lookupMicr },
+    { channel: IpcChannels.MASTERS_NARRATION_LIST, options: mastersOptions, handler: mastersHandlers.listNarrations },
+    { channel: IpcChannels.MASTERS_NARRATION_SAVE, options: { ...mastersCreateOptions, requireSession: true }, handler: mastersHandlers.saveNarration },
+    { channel: IpcChannels.MASTERS_NARRATION_DELETE, options: { ...mastersDeleteOptions, requireSession: true }, handler: mastersHandlers.deleteNarration },
+    { channel: IpcChannels.MASTERS_ADDRESS_BOOK_LIST, options: mastersOptions, handler: mastersHandlers.listAddressBook },
+    { channel: IpcChannels.MASTERS_ADDRESS_BOOK_SAVE, options: { ...mastersCreateOptions, requireSession: true }, handler: mastersHandlers.saveAddressBook },
+    { channel: IpcChannels.MASTERS_ADDRESS_BOOK_DELETE, options: { ...mastersDeleteOptions, requireSession: true }, handler: mastersHandlers.deleteAddressBook },
+    { channel: IpcChannels.MASTERS_CHEQUE_REASON_LIST, options: mastersOptions, handler: mastersHandlers.listChequeReasons },
+    { channel: IpcChannels.MASTERS_CHEQUE_REASON_SAVE, options: { ...mastersCreateOptions, requireSession: true }, handler: mastersHandlers.saveChequeReason },
+    { channel: IpcChannels.MASTERS_CHEQUE_REASON_DELETE, options: { ...mastersDeleteOptions, requireSession: true }, handler: mastersHandlers.deleteChequeReason },
+    { channel: IpcChannels.MASTERS_CHEQUE_REASON_LIST_DISHONOURED, options: mastersOptions, handler: mastersHandlers.listDishonoured },
+    { channel: IpcChannels.MASTERS_CONTRACTOR_LIST, options: mastersOptions, handler: mastersHandlers.listContractors },
+    { channel: IpcChannels.MASTERS_CONTRACTOR_SAVE, options: { ...mastersCreateOptions, requireSession: true }, handler: mastersHandlers.saveContractor },
+    { channel: IpcChannels.MASTERS_CONTRACTOR_DELETE, options: { ...mastersDeleteOptions, requireSession: true }, handler: mastersHandlers.deleteContractor },
+  ];
+
+  for (const entry of mastersChannels) {
+    ipcMain.handle(entry.channel, async (event, request) =>
+      withIpcPipeline(request, sessionManager.get(), event, {
+        ...entry.options,
+        handler: entry.handler,
+      }),
+    );
+  }
+
+  const tariffOptions = { ...tariffReadOptions, requireSession: true };
+
+  const tariffChannels: Array<{
+    channel: string;
+    options: typeof tariffOptions;
+    handler: (typeof tariffHandlers)[keyof typeof tariffHandlers];
+  }> = [
+    { channel: IpcChannels.TARIFF_LIST_DEFINITIONS, options: tariffOptions, handler: tariffHandlers.listDefinitions },
+    { channel: IpcChannels.TARIFF_GET_DEFINITION, options: tariffOptions, handler: tariffHandlers.getDefinition },
+    { channel: IpcChannels.TARIFF_SAVE_DEFINITION, options: { ...tariffCreateOptions, requireSession: true }, handler: tariffHandlers.saveDefinition },
+    { channel: IpcChannels.TARIFF_CLONE_DEFINITION, options: { ...tariffCreateOptions, requireSession: true }, handler: tariffHandlers.cloneDefinition },
+    { channel: IpcChannels.TARIFF_REORDER_LINES, options: { ...tariffWriteOptions, requireSession: true }, handler: tariffHandlers.reorderLines },
+    { channel: IpcChannels.TARIFF_RESOLVE_FOR_MEMBER, options: tariffOptions, handler: tariffHandlers.resolveForMember },
+    { channel: IpcChannels.TARIFF_LIST_SETTLEMENT_SEQUENCES, options: tariffOptions, handler: tariffHandlers.listSettlementSequences },
+    { channel: IpcChannels.TARIFF_GET_SETTLEMENT_SEQUENCE, options: tariffOptions, handler: tariffHandlers.getSettlementSequence },
+    { channel: IpcChannels.TARIFF_SAVE_SETTLEMENT_SEQUENCE, options: { ...tariffCreateOptions, requireSession: true }, handler: tariffHandlers.saveSettlementSequence },
+    { channel: IpcChannels.TARIFF_LIST_BILL_REGISTER_MAPPING, options: tariffOptions, handler: tariffHandlers.listBillRegisterMapping },
+    { channel: IpcChannels.TARIFF_SAVE_BILL_REGISTER_MAPPING, options: { ...tariffWriteOptions, requireSession: true }, handler: tariffHandlers.saveBillRegisterMapping },
+  ];
+
+  for (const entry of tariffChannels) {
     ipcMain.handle(entry.channel, async (event, request) =>
       withIpcPipeline(request, sessionManager.get(), event, {
         ...entry.options,

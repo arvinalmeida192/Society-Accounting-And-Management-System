@@ -54,7 +54,26 @@ import {
   type TenantSaveDto,
   type TenantOccupancyResult,
   OpeningBalanceType,
+  VoucherType,
+  PartyType,
+  type BankMasterDto,
+  type BankMicrCodeDto,
+  type MicrLookupResult,
+  type NarrationMasterDto,
+  type AddressBookEntryDto,
+  type ChequeCancellationReasonDto,
+  type DishonouredChequeDto,
+  type ContractorDetailDto,
   AccountCategoryType,
+  type TariffDefinitionDto,
+  type TariffDefinitionSaveDto,
+  type TariffLineDto,
+  type TariffResolveResult,
+  type TariffScopeLevel,
+  type TariffSettlementSequenceDto,
+  type TariffSettlementSequenceSaveDto,
+  type TariffBillRegisterMappingDto,
+  type TariffBillRegisterMappingSaveDto,
 } from '@sams/shared-types';
 
 async function invoke<TPayload, TResult>(
@@ -278,6 +297,113 @@ contextBridge.exposeInMainWorld('sams', {
         IpcChannels.TENANT_VALIDATE_FOR_OCCUPANCY,
         { unitId },
       ),
+  },
+  masters: {
+    listBanks: (filter?: string) =>
+      invoke<{ filter?: string }, BankMasterDto[]>(IpcChannels.MASTERS_BANK_LIST, { filter }),
+    getBank: (id: string) =>
+      invoke<{ id: string }, BankMasterDto>(IpcChannels.MASTERS_BANK_GET, { id }),
+    saveBank: (payload: BankMasterDto) => invoke(IpcChannels.MASTERS_BANK_SAVE, payload),
+    deleteBank: (id: string) =>
+      invoke<{ id: string }, { deleted: boolean }>(IpcChannels.MASTERS_BANK_DELETE, { id }),
+    listMicr: (bankMasterId: string) =>
+      invoke<{ bankMasterId: string }, BankMicrCodeDto[]>(IpcChannels.MASTERS_BANK_LIST_MICR, {
+        bankMasterId,
+      }),
+    saveMicr: (payload: BankMicrCodeDto) => invoke(IpcChannels.MASTERS_BANK_SAVE_MICR, payload),
+    deleteMicr: (id: string) =>
+      invoke<{ id: string }, { deleted: boolean }>(IpcChannels.MASTERS_BANK_DELETE_MICR, { id }),
+    lookupMicr: (micrCode: string) =>
+      invoke<{ micrCode: string }, MicrLookupResult | null>(
+        IpcChannels.MASTERS_BANK_LOOKUP_MICR,
+        { micrCode },
+      ),
+    listNarrations: (voucherTableType?: VoucherType) =>
+      invoke<{ voucherTableType?: VoucherType }, NarrationMasterDto[]>(
+        IpcChannels.MASTERS_NARRATION_LIST,
+        { voucherTableType },
+      ),
+    saveNarration: (payload: NarrationMasterDto) =>
+      invoke(IpcChannels.MASTERS_NARRATION_SAVE, payload),
+    deleteNarration: (id: string) =>
+      invoke<{ id: string }, { deleted: boolean }>(IpcChannels.MASTERS_NARRATION_DELETE, { id }),
+    listAddressBook: (filter?: string) =>
+      invoke<{ filter?: string }, AddressBookEntryDto[]>(
+        IpcChannels.MASTERS_ADDRESS_BOOK_LIST,
+        { filter },
+      ),
+    saveAddressBook: (payload: AddressBookEntryDto) =>
+      invoke(IpcChannels.MASTERS_ADDRESS_BOOK_SAVE, payload),
+    deleteAddressBook: (id: string) =>
+      invoke<{ id: string }, { deleted: boolean }>(IpcChannels.MASTERS_ADDRESS_BOOK_DELETE, { id }),
+    listChequeReasons: () =>
+      invoke<Record<string, never>, ChequeCancellationReasonDto[]>(
+        IpcChannels.MASTERS_CHEQUE_REASON_LIST,
+        {},
+      ),
+    saveChequeReason: (payload: ChequeCancellationReasonDto) =>
+      invoke(IpcChannels.MASTERS_CHEQUE_REASON_SAVE, payload),
+    deleteChequeReason: (id: string) =>
+      invoke<{ id: string }, { deleted: boolean }>(IpcChannels.MASTERS_CHEQUE_REASON_DELETE, { id }),
+    listDishonoured: (reasonId: string) =>
+      invoke<{ reasonId: string }, DishonouredChequeDto[]>(
+        IpcChannels.MASTERS_CHEQUE_REASON_LIST_DISHONOURED,
+        { reasonId },
+      ),
+    listContractors: (filter?: string) =>
+      invoke<{ filter?: string }, ContractorDetailDto[]>(
+        IpcChannels.MASTERS_CONTRACTOR_LIST,
+        { filter },
+      ),
+    saveContractor: (payload: ContractorDetailDto) =>
+      invoke(IpcChannels.MASTERS_CONTRACTOR_SAVE, payload),
+    deleteContractor: (id: string) =>
+      invoke<{ id: string }, { deleted: boolean }>(IpcChannels.MASTERS_CONTRACTOR_DELETE, { id }),
+  },
+  tariff: {
+    listDefinitions: (scopeLevel?: TariffScopeLevel, asOfDate?: string) =>
+      invoke<{ scopeLevel?: TariffScopeLevel; asOfDate?: string }, TariffDefinitionDto[]>(
+        IpcChannels.TARIFF_LIST_DEFINITIONS,
+        { scopeLevel, asOfDate },
+      ),
+    getDefinition: (id: string) =>
+      invoke<{ id: string }, TariffDefinitionDto>(IpcChannels.TARIFF_GET_DEFINITION, { id }),
+    saveDefinition: (payload: TariffDefinitionSaveDto) =>
+      invoke(IpcChannels.TARIFF_SAVE_DEFINITION, payload),
+    cloneDefinition: (sourceId: string, newEffectiveDate: string) =>
+      invoke<{ sourceId: string; newEffectiveDate: string }, TariffDefinitionDto>(
+        IpcChannels.TARIFF_CLONE_DEFINITION,
+        { sourceId, newEffectiveDate },
+      ),
+    reorderLines: (definitionId: string, lineIds: string[]) =>
+      invoke<{ definitionId: string; lineIds: string[] }, TariffLineDto[]>(
+        IpcChannels.TARIFF_REORDER_LINES,
+        { definitionId, lineIds },
+      ),
+    resolveForMember: (memberId: string, billDate: string) =>
+      invoke<{ memberId: string; billDate: string }, TariffResolveResult>(
+        IpcChannels.TARIFF_RESOLVE_FOR_MEMBER,
+        { memberId, billDate },
+      ),
+    listSettlementSequences: () =>
+      invoke<Record<string, never>, TariffSettlementSequenceDto[]>(
+        IpcChannels.TARIFF_LIST_SETTLEMENT_SEQUENCES,
+        {},
+      ),
+    getSettlementSequence: (id: string) =>
+      invoke<{ id: string }, TariffSettlementSequenceDto>(
+        IpcChannels.TARIFF_GET_SETTLEMENT_SEQUENCE,
+        { id },
+      ),
+    saveSettlementSequence: (payload: TariffSettlementSequenceSaveDto) =>
+      invoke(IpcChannels.TARIFF_SAVE_SETTLEMENT_SEQUENCE, payload),
+    listBillRegisterMapping: () =>
+      invoke<Record<string, never>, TariffBillRegisterMappingDto[]>(
+        IpcChannels.TARIFF_LIST_BILL_REGISTER_MAPPING,
+        {},
+      ),
+    saveBillRegisterMapping: (payload: TariffBillRegisterMappingSaveDto) =>
+      invoke(IpcChannels.TARIFF_SAVE_BILL_REGISTER_MAPPING, payload),
   },
 });
 
