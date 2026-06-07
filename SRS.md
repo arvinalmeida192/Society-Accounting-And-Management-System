@@ -831,3 +831,4 @@ The Contribution Summary is accessible as a reference shortcut from within the R
 | **GAP-051** | Reports    | Contribution Summary report: shows total charges billed per period (month/quarter/etc.) across all members - not per individual member; used to verify that bulk billing ran correctly for a period | **MUST**     |
 | **GAP-052** | Reports    | Columns: Period (Bill For), No. of Bills Generated, Total Principal Charged, Total Interest Charged, Total Service Tax Charged, Grand Total; one row per billing period                             | **MUST**     |
 | **GAP-053** | Reports    | The report must be accessible both from the Bill Reference Data panel (contextual) and from the main Reports menu (standalone)                                                                      | **MUST**     |
+...
