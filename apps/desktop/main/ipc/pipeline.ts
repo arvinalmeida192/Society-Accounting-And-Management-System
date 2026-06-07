@@ -26,6 +26,7 @@ export interface IpcPipelineOptions<TPayload> {
   resource: string;
   action: PermissionAction;
   requireSession?: boolean;
+  requireDatabase?: boolean;
   validatePayload?: (payload: TPayload) => void;
   handler: IpcHandler<TPayload, unknown>;
 }
@@ -45,6 +46,13 @@ export async function withIpcPipeline<TPayload, TResult>(
   const { requestId } = request;
 
   try {
+    if (options.requireDatabase && !session.databasePath) {
+      return createErrorResponse(requestId, {
+        code: ErrorCodes.NO_DATABASE,
+        message: 'No society database is open',
+      });
+    }
+
     if (options.requireSession !== false && !session.userId) {
       return createErrorResponse(requestId, {
         code: ErrorCodes.PERMISSION_DENIED,
@@ -78,9 +86,22 @@ export async function withIpcPipeline<TPayload, TResult>(
     return createSuccessResponse(requestId, data);
   } catch (error) {
     const message = error instanceof Error ? error.message : 'Unknown error';
+    const code =
+      error instanceof Error && 'code' in error && typeof error.code === 'string'
+        ? error.code
+        : ErrorCodes.INTERNAL_ERROR;
+    const fieldErrors =
+      error instanceof Error &&
+      'fieldErrors' in error &&
+      typeof error.fieldErrors === 'object' &&
+      error.fieldErrors
+        ? (error.fieldErrors as Record<string, string>)
+        : undefined;
+
     return createErrorResponse(requestId, {
-      code: ErrorCodes.INTERNAL_ERROR,
+      code,
       message,
+      fieldErrors,
     });
   }
 }

@@ -4,11 +4,16 @@ import { createIpcRequest, withIpcPipeline } from './pipeline.js';
 import type { SessionState } from '../session/session-manager.js';
 
 const baseSession = (): SessionState => ({
+  sessionToken: 'token-1',
   userId: 'user-1',
   username: 'admin',
+  displayName: 'Admin',
   role: UserRole.ADMIN,
   permissions: ['auth:READ'],
-  databasePath: null,
+  databasePath: '/tmp/test.sqlite',
+  financialYearId: 'fy-1',
+  fyLabel: '2025-26',
+  societyName: 'Test Society',
   isReadOnly: false,
 });
 

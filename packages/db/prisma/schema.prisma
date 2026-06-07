@@ -1,5 +1,4 @@
-// SAMS Database Schema — Phase 1: SystemMeta, User, Permission, AuditLog
-// SDD §24.1, §24.7
+// SAMS Database Schema — Phases 1–3
 
 generator client {
   provider = "prisma-client-js"
@@ -36,6 +35,63 @@ enum AuditAction {
 enum YearStorageMode {
   SAME_FILE
   SEPARATE_FILES
+}
+
+enum BillFrequency {
+  MONTHLY
+  BI_MONTHLY
+  QUARTERLY
+  QUADRUPLE
+  HALF_YEARLY
+  YEARLY
+}
+
+enum InterestPattern {
+  NONE
+  SIMPLE
+  COMPOUND
+}
+
+enum SimpleInterestSubType {
+  DELAY_DAYS
+  DELAY_MONTHS
+  COMPLETE_CYCLE
+}
+
+enum TariffMethod {
+  SIMPLE
+  ADVANCE
+}
+
+enum RebateType {
+  PERCENT
+  FIXED
+}
+
+enum BillNumberingMode {
+  USER_INPUT
+  AUTO_SERIAL
+  BUILDING_WISE
+}
+
+enum LandType {
+  FREEHOLD
+  LEASEHOLD
+}
+
+enum ReportType {
+  BILL_REGULAR
+  BILL_SUPPLEMENTARY
+  RECEIPT_MEMBER
+  RECEIPT_GENERAL
+  CHEQUE
+  MEETING_MINUTES
+  MCACT_101
+}
+
+enum PageSize {
+  A4
+  LEGAL
 }
 
 model SystemMeta {
@@ -94,4 +150,192 @@ model AuditLog {
   @@index([timestamp])
   @@index([entityName, entityId])
   @@map("audit_logs")
+}
+
+model SocietyIdentity {
+  id                 String          @id @default(cuid())
+  societyName        String
+  registrationNumber String?
+  registrationDate   DateTime?
+  addressLine1       String?
+  addressLine2       String?
+  addressLine3       String?
+  city               String?
+  state              String?
+  pinCode            String?
+  telephone          String?
+  fax                String?
+  email              String?
+  website            String?
+  tan                String?
+  pan                String?
+  tdsCircle          String?
+  createdAt          DateTime        @default(now())
+  createdBy          String
+  updatedAt          DateTime        @updatedAt
+  updatedBy          String
+  financialYears     FinancialYear[]
+  societyParameters  SocietyParameters?
+  propertyInformation PropertyInformation?
+  reportFormatConfig ReportFormatConfig?
+
+  @@map("society_identity")
+}
+
+model FinancialYear {
+  id                 String          @id @default(cuid())
+  label              String
+  startDate          DateTime
+  endDate            DateTime
+  isClosed           Boolean         @default(false)
+  previousYearDbPath String?
+  societyIdentityId  String
+  societyIdentity    SocietyIdentity @relation(fields: [societyIdentityId], references: [id])
+  billingPeriods     BillingPeriodCalendar[]
+  createdAt          DateTime        @default(now())
+  createdBy          String
+  updatedAt          DateTime        @updatedAt
+  updatedBy          String
+
+  @@map("financial_years")
+}
+
+model SocietyParameters {
+  id                               String               @id @default("singleton")
+  societyIdentityId                String               @unique
+  societyIdentity                  SocietyIdentity      @relation(fields: [societyIdentityId], references: [id])
+  billFrequency                    BillFrequency        @default(MONTHLY)
+  billFrequencyChangedAt           DateTime?
+  suppressZeroTariffs              Boolean              @default(true)
+  mergeParkingOnBill               Boolean              @default(false)
+  tariffDecimalPlaces              Int                  @default(2)
+  regularInterestPattern           InterestPattern      @default(NONE)
+  regularSimpleSubType             SimpleInterestSubType @default(DELAY_DAYS)
+  regularInterestRate              Decimal              @default(0)
+  regularInterestRoundToRupee      Boolean              @default(false)
+  regularAllowManualOverride       Boolean              @default(false)
+  supplementaryInterestPattern     InterestPattern      @default(NONE)
+  supplementarySimpleSubType       SimpleInterestSubType @default(DELAY_DAYS)
+  supplementaryInterestRate        Decimal              @default(0)
+  supplementaryInterestRoundToRupee Boolean           @default(false)
+  supplementaryAllowManualOverride Boolean              @default(false)
+  tariffStructureBasis             String               @default("[\"UNIT\",\"BUILDING\"]")
+  tariffMethod                     TariffMethod         @default(SIMPLE)
+  shareCapitalGroupId              String?
+  shareCapitalSubgroupId           String?
+  bankSubgroupId                   String?
+  cashSubgroupId                   String?
+  memberSubgroupId                 String?
+  tenantSubgroupId                 String?
+  incomeExpenseSubgroupId          String?
+  interestAccountId                String?
+  adjustmentAccountId              String?
+  nonOccupancyAccountId            String?
+  serviceTaxAccountId              String?
+  educationCessAccountId           String?
+  nonOccupancyChargePercent        Decimal              @default(10)
+  rebateType                       RebateType           @default(PERCENT)
+  rebateValue                      Decimal              @default(0)
+  serviceTaxPercent                Decimal              @default(0)
+  educationCessPercent             Decimal              @default(0)
+  gstPercent                       Decimal              @default(0)
+  billNumberingMode                BillNumberingMode    @default(AUTO_SERIAL)
+  bulkBillStartingNumber           Int                  @default(1)
+  dualTypeUnitSupport              Boolean              @default(true)
+  cashBankGroupId                  String?
+  authorizedSignatory1             String?
+  authorizedSignatory2             String?
+  authorizedSignatory3             String?
+  chequeSignatory1                 String?
+  chequeSignatory2                 String?
+  colourCodedGrids                 Boolean              @default(false)
+  dueDateOffsetDays                Int                  @default(15)
+  createdAt                        DateTime             @default(now())
+  createdBy                        String
+  updatedAt                        DateTime             @updatedAt
+  updatedBy                        String
+
+  @@map("society_parameters")
+}
+
+model PropertyInformation {
+  id                           String      @id @default("singleton")
+  societyIdentityId            String      @unique
+  societyIdentity              SocietyIdentity @relation(fields: [societyIdentityId], references: [id])
+  municipalHouseNo             String?
+  surveySubDivisionNo          String?
+  landType                     LandType?
+  annualLeaseRent              Decimal?
+  totalPlotAreaSqFt            Decimal?
+  constructedAreaSqFt          Decimal?
+  totalFlats                   Int?
+  landCost                     Decimal?
+  annualNonAgriAssessment      Decimal?
+  buildingParticulars          String?
+  completionCertificateDetails String?
+  occupationCertificateDetails String?
+  occupationDate               DateTime?
+  municipalAssessmentYear      String?
+  totalRateableValue           Decimal?
+  dateOfConveyance             DateTime?
+  remarks                      String?
+  createdAt                    DateTime    @default(now())
+  createdBy                    String
+  updatedAt                    DateTime    @updatedAt
+  updatedBy                    String
+
+  @@map("property_information")
+}
+
+model ReportTemplate {
+  id               String     @id @default(cuid())
+  reportType       ReportType
+  templateCode     String     @unique
+  templateName     String
+  htmlTemplatePath String
+  cssPath          String?
+  thumbnailPath    String?
+  pageSize         PageSize   @default(A4)
+  isActive         Boolean    @default(true)
+  createdAt        DateTime   @default(now())
+  createdBy        String
+  updatedAt        DateTime   @updatedAt
+  updatedBy        String
+
+  @@map("report_templates")
+}
+
+model ReportFormatConfig {
+  id                         String          @id @default("singleton")
+  societyIdentityId          String          @unique
+  societyIdentity            SocietyIdentity @relation(fields: [societyIdentityId], references: [id])
+  billFormatId               String?
+  supplementaryBillFormatId  String?
+  receiptFormatId            String?
+  generalReceiptFormatId     String?
+  chequePrintFormatId        String?
+  createdAt                  DateTime        @default(now())
+  createdBy                  String
+  updatedAt                  DateTime        @updatedAt
+  updatedBy                  String
+
+  @@map("report_format_config")
+}
+
+model BillingPeriodCalendar {
+  id              String        @id @default(cuid())
+  financialYearId String
+  financialYear   FinancialYear @relation(fields: [financialYearId], references: [id], onDelete: Cascade)
+  periodKey       String
+  periodLabel     String
+  periodStartDate DateTime
+  periodEndDate   DateTime
+  sequenceNo      Int
+  createdAt       DateTime      @default(now())
+  createdBy       String
+  updatedAt       DateTime      @updatedAt
+  updatedBy       String
+
+  @@unique([financialYearId, periodKey])
+  @@map("billing_period_calendar")
 }

@@ -1,78 +1,106 @@
-import { useEffect, useState } from 'react';
-import {
-  ConfirmDialog,
-  FilterDrawer,
-  MasterFormToolbar,
-  PrintPreviewModal,
-} from './components';
+import { Navigate, Route, Routes } from 'react-router-dom';
+import { useCallback, useEffect, useState } from 'react';
+import type { SessionDto } from '@sams/shared-types';
+import { refreshSession } from './hooks/session';
+import { LoginScreen } from './screens/LoginScreen';
+import { MainShell } from './screens/MainShell';
+import { NewFinancialYearWizard } from './screens/NewFinancialYearWizard';
+import { NewSocietyWizard } from './screens/NewSocietyWizard';
+import { StartupScreen } from './screens/StartupScreen';
 
 export default function App(): React.ReactElement {
-  const [sessionLabel, setSessionLabel] = useState('Loading session…');
-  const [filterOpen, setFilterOpen] = useState(false);
-  const [confirmOpen, setConfirmOpen] = useState(false);
-  const [printOpen, setPrintOpen] = useState(false);
+  const [session, setSession] = useState<SessionDto | null>(null);
+  const [loading, setLoading] = useState(true);
+  const [bootError, setBootError] = useState<string | null>(null);
 
-  useEffect(() => {
-    void window.sams.auth.getSession().then((res) => {
-      if (res.success && res.data) {
-        setSessionLabel(
-          res.data.userId
-            ? `Signed in as ${res.data.username} (${res.data.role})`
-            : 'No active session — Phase 2 login pending',
-        );
-      } else {
-        setSessionLabel(res.error?.message ?? 'Session unavailable');
+  const loadSession = useCallback(async (): Promise<void> => {
+    try {
+      if (typeof window.sams?.auth?.getSession !== 'function') {
+        setBootError('Application bridge failed to initialize. Restart the app.');
+        setSession(null);
+        return;
       }
-    });
+      const data = await refreshSession();
+      setSession(data);
+      setBootError(null);
+    } catch (error) {
+      setBootError(error instanceof Error ? error.message : 'Failed to load session.');
+      setSession(null);
+    } finally {
+      setLoading(false);
+    }
   }, []);
 
+  useEffect(() => {
+    void loadSession();
+  }, [loadSession]);
+
+  if (loading) {
+    return <div className="loading-screen">Loading SAMS…</div>;
+  }
+
+  if (bootError) {
+    return (
+      <div className="loading-screen">
+        <p className="form-error">{bootError}</p>
+        <button type="button" onClick={() => void loadSession()}>
+          Retry
+        </button>
+      </div>
+    );
+  }
+
+  const hasDatabase = Boolean(session?.databasePath);
+  const isAuthenticated = Boolean(session?.userId);
+
   return (
-    <div className="app-shell">
-      <header className="app-header">
-        <h1>Society Accounting &amp; Management System</h1>
-        <p className="subtitle">Phase 1 — Platform Foundation</p>
-        <p className="session">{sessionLabel}</p>
-      </header>
-
-      <main className="app-main">
-        <MasterFormToolbar
-          onAdd={() => undefined}
-          onEdit={() => undefined}
-          onSave={() => undefined}
-          onCancel={() => undefined}
-          onDelete={() => setConfirmOpen(true)}
-          onFind={() => setFilterOpen(true)}
-          onBrowse={() => undefined}
-          onPrint={() => setPrintOpen(true)}
-          onExit={() => undefined}
-        />
-
-        <section className="placeholder">
-          <p>Renderer shell ready. Feature modules arrive in Phase 2+.</p>
-        </section>
-      </main>
-
-      <FilterDrawer
-        open={filterOpen}
-        onClose={() => setFilterOpen(false)}
-        onApply={() => setFilterOpen(false)}
+    <Routes>
+      <Route path="/" element={<Navigate to="/startup" replace />} />
+      <Route
+        path="/startup"
+        element={
+          hasDatabase && isAuthenticated ? (
+            <Navigate to="/app/home" replace />
+          ) : hasDatabase ? (
+            <Navigate to="/login" replace />
+          ) : (
+            <StartupScreen />
+          )
+        }
       />
-
-      <ConfirmDialog
-        open={confirmOpen}
-        title="Confirm action"
-        message="Shared ConfirmDialog stub (NF-021)."
-        onConfirm={() => setConfirmOpen(false)}
-        onCancel={() => setConfirmOpen(false)}
+      <Route
+        path="/startup/new-society"
+        element={hasDatabase ? <Navigate to="/login" replace /> : <NewSocietyWizard />}
       />
-
-      <PrintPreviewModal
-        open={printOpen}
-        title="Print Preview"
-        html="<p>Print preview stub (NF-020)</p>"
-        onClose={() => setPrintOpen(false)}
-        onPrint={() => setPrintOpen(false)}
+      <Route
+        path="/startup/new-year"
+        element={hasDatabase ? <Navigate to="/login" replace /> : <NewFinancialYearWizard />}
       />
-    </div>
+      <Route
+        path="/login"
+        element={
+          !hasDatabase ? (
+            <Navigate to="/startup" replace />
+          ) : isAuthenticated ? (
+            <Navigate to="/app/home" replace />
+          ) : (
+            <LoginScreen onLoggedIn={() => void loadSession()} />
+          )
+        }
+      />
+      <Route
+        path="/app/*"
+        element={
+          !hasDatabase ? (
+            <Navigate to="/startup" replace />
+          ) : !isAuthenticated ? (
+            <Navigate to="/login" replace />
+          ) : (
+            <MainShell session={session!} onSessionChange={() => void loadSession()} />
+          )
+        }
+      />
+      <Route path="*" element={<Navigate to="/startup" replace />} />
+    </Routes>
   );
 }

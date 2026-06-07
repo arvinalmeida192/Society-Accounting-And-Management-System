@@ -21,7 +21,7 @@ export function getPrismaClient(): PrismaClient {
 
 /** Enable SQLite WAL mode — SDD §3.1, NF-006 */
 export async function enableWalMode(client: PrismaClient): Promise<void> {
-  await client.$executeRawUnsafe('PRAGMA journal_mode=WAL;');
+  await client.$queryRawUnsafe('PRAGMA journal_mode=WAL;');
 }
 
 export async function disconnectPrisma(): Promise<void> {

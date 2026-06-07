@@ -8,14 +8,13 @@ Offline-first Electron desktop application for co-operative housing society acco
 - `SDD.md` — Software Design Document
 - `Development_Plan.md` — Phased implementation plan
 
-## Phase 1 (current)
+## Current status: Phase 3 complete
 
-Monorepo foundation with:
-
-- `packages/shared-types` — IPC envelopes and core enums
-- `packages/db` — Prisma schema (SystemMeta, User, Permission, AuditLog)
-- `packages/services` — Money, Auth hashing, Audit stub, permission seed
-- `apps/desktop` — Electron main, preload, React renderer shell
+| Phase | Scope |
+| ----- | ----- |
+| 1 | Monorepo, IPC pipeline, Money type, Prisma core tables, shared UI stubs |
+| 2 | Startup selector, new society wizard, login, application shell |
+| 3 | Society configuration (SOC-001–004), billing period calendar, shared UX components |
 
 ## Setup
 
@@ -23,10 +22,18 @@ Monorepo foundation with:
 npm install
 npm run db:generate
 npm run db:migrate
-npm run db:seed
 npm test
 npm run dev
 ```
+
+## First run
+
+1. Launch the app (`npm run dev`).
+2. Choose **Create New Society** and complete the wizard.
+3. Sign in with the administrator account you created.
+4. Use **Explorer → Society Setup** for Identity, Parameters, Property, and Report Formats.
+
+Each society/financial year is stored in its own `.sqlite` file.
 
 ## Workspace scripts
 
@@ -35,4 +42,4 @@ npm run dev
 | `npm run dev` | Start Electron in development mode |
 | `npm test` | Run unit tests in all packages |
 | `npm run db:migrate` | Apply Prisma migrations |
-| `npm run db:seed` | Seed permissions and SystemMeta |
+| `npm run build` | Production build |
