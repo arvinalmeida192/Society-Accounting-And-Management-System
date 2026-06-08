@@ -168,6 +168,7 @@ export const IpcChannels = {
   BILLING_GET_SUPPLEMENTARY: 'billing:getSupplementaryBill',
   BILLING_PREVIEW_SUPPLEMENTARY: 'billing:previewSupplementaryBill',
   BILLING_SAVE_SUPPLEMENTARY: 'billing:saveSupplementaryBill',
+  BILLING_PRINT_REGULAR: 'billing:printRegularBill',
   VOUCHER_LIST: 'voucher:list',
   VOUCHER_GET: 'voucher:get',
   VOUCHER_PREVIEW_POST: 'voucher:previewPost',
@@ -1501,6 +1502,11 @@ export interface RegularBillDetailDto extends AuditFieldsDto {
   settlements: BillSettlementDto[];
 }
 
+export interface BillPrintDto {
+  billId: string;
+  templateHtml: string;
+}
+
 export interface RegularBillPreviewDto {
   id?: string;
   memberId: string;
@@ -2293,7 +2299,19 @@ export type ReportId =
   | 'RPT-M05'
   | 'RPT-M06'
   | 'RPT-M07'
-  | 'RPT-M08';
+  | 'RPT-M08'
+  | 'RPT-A01'
+  | 'RPT-A02'
+  | 'RPT-A03'
+  | 'RPT-A04'
+  | 'RPT-A05'
+  | 'RPT-A06'
+  | 'RPT-A07'
+  | 'RPT-A08'
+  | 'RPT-A09'
+  | 'RPT-A10'
+  | 'RPT-A11'
+  | 'RPT-A12';
 
 export interface ReportColumnDef {
   key: string;
@@ -2336,7 +2354,7 @@ export interface ReportResultDto {
 export interface ReportCatalogEntryDto {
   reportId: ReportId;
   title: string;
-  category: 'billing' | 'member';
+  category: 'billing' | 'member' | 'accounting';
   supportsDrillDown: boolean;
 }
 

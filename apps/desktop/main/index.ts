@@ -8,6 +8,11 @@ import { restartScheduledBackupJob } from './scheduled-backup-job.js';
 import { sessionManager } from './session/session-manager.js';
 
 let appConfig: AppConfigStore;
+let mainWindow: BrowserWindow | null = null;
+
+function navigateRenderer(route: string): void {
+  mainWindow?.webContents.send('app:navigate', route);
+}
 
 function resolvePreloadPath(): string {
   const candidates = [
@@ -30,6 +35,23 @@ function buildApplicationMenu(): void {
     {
       label: 'View',
       submenu: [
+        {
+          label: 'Member Outstanding',
+          click: () => navigateRenderer('/app/reports/RPT-B07'),
+        },
+        {
+          label: 'Voucher Register',
+          click: () => navigateRenderer('/app/reports/RPT-A01'),
+        },
+        {
+          label: 'General Ledger',
+          click: () => navigateRenderer('/app/reports/RPT-A04'),
+        },
+        {
+          label: 'Bill Register',
+          click: () => navigateRenderer('/app/reports/RPT-B01'),
+        },
+        { type: 'separator' },
         { role: 'reload' },
         { role: 'forceReload' },
         { role: 'toggleDevTools' },
@@ -51,7 +73,7 @@ function buildApplicationMenu(): void {
 }
 
 function createWindow(): void {
-  const mainWindow = new BrowserWindow({
+  mainWindow = new BrowserWindow({
     width: 1280,
     height: 800,
     minWidth: 1280,

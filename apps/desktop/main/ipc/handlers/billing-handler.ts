@@ -1,6 +1,7 @@
 import { PermissionAction } from '@sams/shared-types';
 import type {
   BillInterestDetailDto,
+  BillPrintDto,
   BillSettlementDto,
   BillSummaryDto,
   BillToType,
@@ -28,6 +29,7 @@ import {
   previewSupplementaryBill,
   saveRegularBill,
   saveSupplementaryBill,
+  prepareRegularBillPrintData,
 } from '@sams/services';
 import { getActivePrisma } from '../../database/database-manager.js';
 import { sessionManager } from '../../session/session-manager.js';
@@ -131,6 +133,12 @@ export const billingHandlers = {
     saveSupplementaryBill(getActivePrisma(), payload, requireUserId())) as IpcHandler<
     SupplementaryBillSaveDto,
     SupplementaryBillDetailDto
+  >,
+
+  printRegularBill: (async (_ctx, payload: { billId: string }) =>
+    prepareRegularBillPrintData(getActivePrisma(), payload.billId)) as IpcHandler<
+    { billId: string },
+    BillPrintDto
   >,
 };
 

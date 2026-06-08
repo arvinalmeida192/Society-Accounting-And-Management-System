@@ -1,12 +1,17 @@
 import { useCallback, useEffect, useMemo, useState } from 'react';
-import { useParams, useSearchParams } from 'react-router-dom';
+import { useNavigate, useParams, useSearchParams } from 'react-router-dom';
 import type {
+  AccountPickerItem,
+  BuildingDto,
   MemberListItemDto,
   ReportId,
   ReportResultDto,
+  ReportRowDrillDown,
 } from '@sams/shared-types';
-import { PrintPreviewModal } from '../../components';
+import { VoucherType } from '@sams/shared-types';
+import { BillReadonlyModal, PrintPreviewModal, VoucherReadonlyModal } from '../../components';
 import { getIpcErrorMessage } from '../../hooks/session';
+import { useTabStore } from '../../store/tabStore';
 
 const MEMBER_REPORTS = new Set<ReportId>([
   'RPT-B03',
@@ -19,13 +24,37 @@ const MEMBER_REPORTS = new Set<ReportId>([
 
 const PERIOD_REPORTS = new Set<ReportId>(['RPT-B01', 'RPT-B02']);
 
-const FILTER_REPORTS = new Set<ReportId>([
+const BUILDING_FILTER_REPORTS = new Set<ReportId>([
   'RPT-B01',
   'RPT-B02',
   'RPT-B07',
   'RPT-M01',
   'RPT-M03',
 ]);
+
+const DATE_RANGE_REPORTS = new Set<ReportId>([
+  'RPT-B03',
+  'RPT-M08',
+  'RPT-A01',
+  'RPT-A02',
+  'RPT-A03',
+  'RPT-A04',
+  'RPT-A07',
+  'RPT-A08',
+  'RPT-A12',
+]);
+
+const AS_ON_REPORTS = new Set<ReportId>(['RPT-A05', 'RPT-A06', 'RPT-A09']);
+
+const ACCOUNT_REPORTS = new Set<ReportId>(['RPT-A04']);
+
+const BANK_ACCOUNT_REPORTS = new Set<ReportId>(['RPT-A03', 'RPT-A09']);
+
+const VOUCHER_TYPE_REPORTS = new Set<ReportId>(['RPT-A01']);
+
+const BANK_SLIP_REPORTS = new Set<ReportId>(['RPT-A10']);
+
+const DAY_BOOK_REPORTS = new Set<ReportId>(['RPT-A11']);
 
 function formatCell(value: string | number | null | undefined): string {
   if (value == null) return '';
@@ -35,19 +64,34 @@ function formatCell(value: string | number | null | undefined): string {
   return String(value);
 }
 
-/** Phase 18 — Run, preview, export, and print a single report. */
+/** Phase 18–19 — Run, preview, export, print, and drill-down for reports. */
 export function ReportViewerScreen(): React.ReactElement {
   const { reportId: reportIdParam } = useParams<{ reportId: ReportId }>();
   const [searchParams] = useSearchParams();
+  const navigate = useNavigate();
+  const openTab = useTabStore((state) => state.openTab);
   const reportId = reportIdParam as ReportId;
 
   const [members, setMembers] = useState<MemberListItemDto[]>([]);
+  const [buildings, setBuildings] = useState<BuildingDto[]>([]);
+  const [bankAccounts, setBankAccounts] = useState<AccountPickerItem[]>([]);
+  const [ledgerAccounts, setLedgerAccounts] = useState<AccountPickerItem[]>([]);
+
   const [memberId, setMemberId] = useState(searchParams.get('memberId') ?? '');
   const [periodFrom, setPeriodFrom] = useState('');
   const [periodTo, setPeriodTo] = useState('');
+  const [dateFrom, setDateFrom] = useState('');
+  const [dateTo, setDateTo] = useState('');
+  const [asOnDate, setAsOnDate] = useState(new Date().toISOString().slice(0, 10));
+  const [dayDate, setDayDate] = useState(new Date().toISOString().slice(0, 10));
   const [buildingId, setBuildingId] = useState('');
   const [wingId, setWingId] = useState('');
+  const [accountId, setAccountId] = useState('');
+  const [bankAccountId, setBankAccountId] = useState('');
+  const [bankSlipNo, setBankSlipNo] = useState('');
+  const [voucherType, setVoucherType] = useState('');
   const [search, setSearch] = useState('');
+
   const [result, setResult] = useState<ReportResultDto | null>(null);
   const [previewHtml, setPreviewHtml] = useState<string | null>(null);
   const [previewOpen, setPreviewOpen] = useState(false);
@@ -55,24 +99,56 @@ export function ReportViewerScreen(): React.ReactElement {
   const [message, setMessage] = useState<string | null>(null);
   const [loading, setLoading] = useState(false);
 
+  const [drillBillId, setDrillBillId] = useState<string | null>(null);
+  const [drillVoucherId, setDrillVoucherId] = useState<string | null>(null);
+
   const parameters = useMemo(
     () => ({
       ...(memberId ? { memberId } : {}),
       ...(periodFrom ? { periodFrom } : {}),
       ...(periodTo ? { periodTo } : {}),
+      ...(dateFrom ? { dateFrom } : {}),
+      ...(dateTo ? { dateTo } : {}),
+      ...(asOnDate ? { asOnDate } : {}),
+      ...(dayDate ? { date: dayDate } : {}),
       ...(buildingId ? { buildingId } : {}),
       ...(wingId ? { wingId } : {}),
+      ...(accountId ? { accountId } : {}),
+      ...(bankAccountId ? { bankAccountId } : {}),
+      ...(bankSlipNo ? { bankSlipNo } : {}),
+      ...(voucherType ? { voucherType } : {}),
       ...(search ? { search } : {}),
     }),
-    [memberId, periodFrom, periodTo, buildingId, wingId, search],
+    [
+      memberId,
+      periodFrom,
+      periodTo,
+      dateFrom,
+      dateTo,
+      asOnDate,
+      dayDate,
+      buildingId,
+      wingId,
+      accountId,
+      bankAccountId,
+      bankSlipNo,
+      voucherType,
+      search,
+    ],
   );
 
   useEffect(() => {
     void (async () => {
-      const response = await window.sams.member.list();
-      if (response.success && response.data) {
-        setMembers(response.data.items);
-      }
+      const [memberRes, buildingRes, bankRes, accountRes] = await Promise.all([
+        window.sams.member.list(),
+        window.sams.property.listBuildings(),
+        window.sams.coa.searchForPicker('', 'BANK'),
+        window.sams.coa.searchForPicker('', 'ACCOUNT'),
+      ]);
+      if (memberRes.success && memberRes.data) setMembers(memberRes.data.items);
+      if (buildingRes.success && buildingRes.data) setBuildings(buildingRes.data);
+      if (bankRes.success && bankRes.data) setBankAccounts(bankRes.data);
+      if (accountRes.success && accountRes.data) setLedgerAccounts(accountRes.data);
     })();
   }, []);
 
@@ -130,6 +206,28 @@ export function ReportViewerScreen(): React.ReactElement {
     if (response.data?.path) setMessage(`PDF saved to ${response.data.path}`);
   };
 
+  const handleDrillDown = (drillDown: ReportRowDrillDown): void => {
+    if (drillDown.refType === 'BILL') {
+      setDrillBillId(drillDown.refId);
+      return;
+    }
+    if (drillDown.refType === 'VOUCHER') {
+      setDrillVoucherId(drillDown.refId);
+      return;
+    }
+    if (drillDown.refType === 'MEMBER') {
+      const route = `/app/members/register?memberId=${drillDown.refId}`;
+      openTab({ id: `mem-${drillDown.refId}`, title: 'Member Register', route });
+      navigate(route);
+      return;
+    }
+    if (drillDown.refType === 'GENERATED_LETTER') {
+      const route = '/app/correspondence/reminders';
+      openTab({ id: 'cor-rem', title: 'Reminder Letters', route });
+      navigate(route);
+    }
+  };
+
   if (!reportId) {
     return (
       <section className="form-screen">
@@ -181,17 +279,100 @@ export function ReportViewerScreen(): React.ReactElement {
           </>
         )}
 
-        {FILTER_REPORTS.has(reportId) && (
+        {DATE_RANGE_REPORTS.has(reportId) && (
           <>
             <label>
-              Building ID
-              <input value={buildingId} onChange={(event) => setBuildingId(event.target.value)} />
+              Date from
+              <input type="date" value={dateFrom} onChange={(event) => setDateFrom(event.target.value)} />
+            </label>
+            <label>
+              Date to
+              <input type="date" value={dateTo} onChange={(event) => setDateTo(event.target.value)} />
+            </label>
+          </>
+        )}
+
+        {AS_ON_REPORTS.has(reportId) && (
+          <label>
+            As on date
+            <input type="date" value={asOnDate} onChange={(event) => setAsOnDate(event.target.value)} />
+          </label>
+        )}
+
+        {DAY_BOOK_REPORTS.has(reportId) && (
+          <label>
+            Date
+            <input type="date" value={dayDate} onChange={(event) => setDayDate(event.target.value)} />
+          </label>
+        )}
+
+        {BUILDING_FILTER_REPORTS.has(reportId) && (
+          <>
+            <label>
+              Building
+              <select value={buildingId} onChange={(event) => setBuildingId(event.target.value)}>
+                <option value="">All buildings</option>
+                {buildings.map((building) => (
+                  <option key={building.id} value={building.id}>
+                    {building.shortName} — {building.fullName}
+                  </option>
+                ))}
+              </select>
             </label>
             <label>
               Wing ID
               <input value={wingId} onChange={(event) => setWingId(event.target.value)} />
             </label>
           </>
+        )}
+
+        {ACCOUNT_REPORTS.has(reportId) && (
+          <label>
+            Account
+            <select value={accountId} onChange={(event) => setAccountId(event.target.value)}>
+              <option value="">Select account</option>
+              {ledgerAccounts.map((account) => (
+                <option key={account.id} value={account.id}>
+                  {account.particulars}
+                </option>
+              ))}
+            </select>
+          </label>
+        )}
+
+        {BANK_ACCOUNT_REPORTS.has(reportId) && (
+          <label>
+            Bank account
+            <select value={bankAccountId} onChange={(event) => setBankAccountId(event.target.value)}>
+              <option value="">Select bank account</option>
+              {bankAccounts.map((account) => (
+                <option key={account.id} value={account.id}>
+                  {account.particulars}
+                </option>
+              ))}
+            </select>
+          </label>
+        )}
+
+        {VOUCHER_TYPE_REPORTS.has(reportId) && (
+          <label>
+            Voucher type
+            <select value={voucherType} onChange={(event) => setVoucherType(event.target.value)}>
+              <option value="">All types</option>
+              {Object.values(VoucherType).map((type) => (
+                <option key={type} value={type}>
+                  {type}
+                </option>
+              ))}
+            </select>
+          </label>
+        )}
+
+        {BANK_SLIP_REPORTS.has(reportId) && (
+          <label>
+            Bank Slip No.
+            <input value={bankSlipNo} onChange={(event) => setBankSlipNo(event.target.value)} />
+          </label>
         )}
 
         {(reportId === 'RPT-M05' || reportId === 'RPT-M06' || reportId === 'RPT-M07') && (
@@ -234,7 +415,14 @@ export function ReportViewerScreen(): React.ReactElement {
             </thead>
             <tbody>
               {result.rows.map((row, index) => (
-                <tr key={index}>
+                <tr
+                  key={index}
+                  className={row.drillDown ? 'drilldown-row' : undefined}
+                  onClick={() => {
+                    if (row.drillDown) handleDrillDown(row.drillDown);
+                  }}
+                  style={row.drillDown ? { cursor: 'pointer' } : undefined}
+                >
                   {result.columns.map((col) => (
                     <td
                       key={col.key}
@@ -247,6 +435,9 @@ export function ReportViewerScreen(): React.ReactElement {
               ))}
             </tbody>
           </table>
+          {result.metadata.supportsDrillDown && (
+            <p className="muted">Click a row to open the underlying record.</p>
+          )}
         </div>
       )}
 
@@ -256,6 +447,18 @@ export function ReportViewerScreen(): React.ReactElement {
         html={previewHtml ?? ''}
         onClose={() => setPreviewOpen(false)}
         onPrint={() => window.print()}
+      />
+
+      <BillReadonlyModal
+        open={Boolean(drillBillId)}
+        billId={drillBillId}
+        onClose={() => setDrillBillId(null)}
+      />
+
+      <VoucherReadonlyModal
+        open={Boolean(drillVoucherId)}
+        voucherId={drillVoucherId}
+        onClose={() => setDrillVoucherId(null)}
       />
     </section>
   );

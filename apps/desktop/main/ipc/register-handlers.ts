@@ -575,6 +575,7 @@ export function registerIpcHandlers(appConfig: AppConfigStore): void {
     { channel: IpcChannels.BILLING_GET_SUPPLEMENTARY, options: billingOptions, handler: billingHandlers.getSupplementaryBill },
     { channel: IpcChannels.BILLING_PREVIEW_SUPPLEMENTARY, options: billingOptions, handler: billingHandlers.previewSupplementaryBill },
     { channel: IpcChannels.BILLING_SAVE_SUPPLEMENTARY, options: { ...billingCreateOptions, requireSession: true }, handler: billingHandlers.saveSupplementaryBill },
+    { channel: IpcChannels.BILLING_PRINT_REGULAR, options: billingReadOptions, handler: billingHandlers.printRegularBill },
   ];
 
   for (const entry of billingChannels) {

@@ -1,3 +1,4 @@
+import { useEffect } from 'react';
 import { Navigate, Route, Routes, useNavigate } from 'react-router-dom';
 import type { SessionDto } from '@sams/shared-types';
 import { PermissionAction } from '@sams/shared-types';
@@ -92,6 +93,7 @@ export function MainShell({ session }: MainShellProps): React.ReactElement {
   const activeTabId = useTabStore((state) => state.activeTabId);
   const explorerVisible = useTabStore((state) => state.explorerVisible);
   const closeTab = useTabStore((state) => state.closeTab);
+  const openTab = useTabStore((state) => state.openTab);
   const setActiveTab = useTabStore((state) => state.setActiveTab);
   const toggleExplorer = useTabStore((state) => state.toggleExplorer);
   const { refreshSession } = useSession();
@@ -109,6 +111,15 @@ export function MainShell({ session }: MainShellProps): React.ReactElement {
     await refreshSession();
     navigate('/login');
   };
+
+  useEffect(() => {
+    const unsubscribe = window.sams.onNavigate((route) => {
+      const title = route.split('/').pop() ?? 'Report';
+      openTab({ id: route, title, route });
+      navigate(route);
+    });
+    return unsubscribe;
+  }, [navigate, openTab]);
 
   return (
     <div className="main-shell">

@@ -86,6 +86,7 @@ export {
   getSupplementaryBill,
   assertNotDuplicateSupplementaryBill,
 } from './billing-service.js';
+export { prepareRegularBillPrintData } from './bill-print-service.js';
 export {
   allocateToBill,
   allocateRegularSettlement,
@@ -190,7 +191,18 @@ export {
   isBalanceSheetCategory,
   isIncomeExpenseCategory,
 } from './account-validation-service.js';
-export { getClosingBalance, type ClosingBalance } from './ledger-balance-service.js';
+export {
+  getClosingBalance,
+  getTrialBalance,
+  getBalanceSheet,
+  getIncomeExpenditure,
+  getReceiptPaymentStatement,
+  type ClosingBalance,
+  type TrialBalanceRow,
+  type BalanceSheetRow,
+  type IncomeExpenditureRow,
+  type ReceiptPaymentRow,
+} from './ledger-balance-service.js';
 export {
   canArchiveAccount,
   canDelete,

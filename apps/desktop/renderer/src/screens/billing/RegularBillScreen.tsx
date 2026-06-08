@@ -16,6 +16,7 @@ import {
   InterestDetailModal,
   MasterFormToolbar,
   MoneyInput,
+  PrintPreviewModal,
 } from '../../components';
 import { getIpcErrorMessage } from '../../hooks/session';
 import { useReadOnlySession } from '../../hooks/useReadOnlySession';
@@ -42,6 +43,8 @@ export function RegularBillScreen(): React.ReactElement {
   const [interestOpen, setInterestOpen] = useState(false);
   const [referenceOpen, setReferenceOpen] = useState(false);
   const [confirmSave, setConfirmSave] = useState(false);
+  const [billPrintHtml, setBillPrintHtml] = useState<string | null>(null);
+  const [billPrintOpen, setBillPrintOpen] = useState(false);
 
   const loadBase = useCallback(async (): Promise<void> => {
     const [periodRes, memberRes, paramRes, nextRes] = await Promise.all([
@@ -113,6 +116,21 @@ export function RegularBillScreen(): React.ReactElement {
     }
   };
 
+  const printBill = async (): Promise<void> => {
+    if (!bill?.id) {
+      setError('Save the bill before printing.');
+      return;
+    }
+    setError(null);
+    const response = await window.sams.billing.printRegularBill(bill.id);
+    if (!response.success || !response.data) {
+      setError(getIpcErrorMessage(response.error));
+      return;
+    }
+    setBillPrintHtml(response.data.templateHtml);
+    setBillPrintOpen(true);
+  };
+
   const selectedPeriod = periods.find((row) => row.periodKey === periodKey);
 
   return (
@@ -127,6 +145,7 @@ export function RegularBillScreen(): React.ReactElement {
       <MasterFormToolbar
         onSave={() => setConfirmSave(true)}
         onBrowse={() => void preview()}
+        onPrint={() => void printBill()}
         onUserIdentity={() => setAuditOpen(true)}
       />
 
@@ -333,6 +352,14 @@ export function RegularBillScreen(): React.ReactElement {
       />
 
       <AuditIdentityModal open={auditOpen} record={bill} onClose={() => setAuditOpen(false)} />
+
+      <PrintPreviewModal
+        open={billPrintOpen}
+        title={`Bill — ${bill?.systemBillNo ?? ''}`}
+        html={billPrintHtml ?? ''}
+        onClose={() => setBillPrintOpen(false)}
+        onPrint={() => window.print()}
+      />
     </section>
   );
 }

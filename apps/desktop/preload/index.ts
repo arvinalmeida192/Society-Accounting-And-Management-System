@@ -73,6 +73,7 @@ import {
   type RegularBillPreviewDto,
   type RegularBillSaveDto,
   type BillInterestDetailDto,
+  type BillPrintDto,
   type BillSettlementDto,
   type BulkRegularBillGenerateDto,
   type BillToType,
@@ -505,6 +506,8 @@ contextBridge.exposeInMainWorld('sams', {
       invoke(IpcChannels.BILLING_PREVIEW_SUPPLEMENTARY, payload),
     saveSupplementaryBill: (payload: SupplementaryBillSaveDto) =>
       invoke(IpcChannels.BILLING_SAVE_SUPPLEMENTARY, payload),
+    printRegularBill: (billId: string) =>
+      invoke<{ billId: string }, BillPrintDto>(IpcChannels.BILLING_PRINT_REGULAR, { billId }),
   },
   voucher: {
     list: (filter?: {
@@ -716,6 +719,15 @@ contextBridge.exposeInMainWorld('sams', {
       ),
     print: (payload: ReportRunPayload) =>
       invoke<ReportRunPayload, ReportPreviewResultDto>(IpcChannels.REPORT_PRINT, payload),
+  },
+  onNavigate: (callback: (route: string) => void): (() => void) => {
+    const listener = (_event: Electron.IpcRendererEvent, route: string): void => {
+      callback(route);
+    };
+    ipcRenderer.on('app:navigate', listener);
+    return () => {
+      ipcRenderer.removeListener('app:navigate', listener);
+    };
   },
 });
 

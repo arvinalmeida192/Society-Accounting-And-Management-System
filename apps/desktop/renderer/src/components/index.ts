@@ -12,6 +12,8 @@ export { ChequePrintPreviewModal } from './ChequePrintPreviewModal';
 export type { ChequePrintPreviewModalProps } from './ChequePrintPreviewModal';
 export { VoucherReadonlyModal } from './VoucherReadonlyModal';
 export type { VoucherReadonlyModalProps } from './VoucherReadonlyModal';
+export { BillReadonlyModal } from './BillReadonlyModal';
+export type { BillReadonlyModalProps } from './BillReadonlyModal';
 export type { PrintPreviewModalProps } from './PrintPreviewModal';
 export { MoneyInput } from './MoneyInput';
 export type { MoneyInputProps } from './MoneyInput';

@@ -8,7 +8,7 @@ Offline-first Electron desktop application for co-operative housing society acco
 - `SDD.md` — Software Design Document
 - `Development_Plan.md` — Phased implementation plan
 
-## Current status: Phase 15 complete
+## Current status: Phase 19 complete
 
 | Phase | Scope |
 | ----- | ----- |
@@ -20,12 +20,17 @@ Offline-first Electron desktop application for co-operative housing society acco
 | 6 | Members, tenants, opening balances with JV posting, member subsidiary ledgers |
 | 7 | Miscellaneous masters: banks/MICR, narrations, address book, cheque reasons, contractors |
 | 8 | Tariff definitions, settlement sequence, bill register mapping, tariff resolution engine |
-| 9 | Regular billing engine: single bill, bulk generation, interest/NOC/rebate/ST, RB number series |
+| 9 | Regular billing engine: single bill, bulk generation, interest/NOC/rebate/ST, RB number series, bill print |
 | 10 | Supplementary billing: Member/Tenant/General bill-to, SB number series, supplementary interest/arrears |
 | 11 | Vouchers: Receipt/Payment/Contra posting, FIFO settlement, cheque/MICR, general bill reference |
 | 12 | Adjustments (JV/DN/CN), petty cash, cheque print preview, cheque cancellation with reversal |
 | 13 | Bank reconciliation: clearing entry, bulk clearing dates, reconciliation statement, voucher drill-down |
 | 14 | Statutory registers: FD, Property, Sinking Fund (auto from receipts), I-Form with share sub-tables |
+| 15 | TDS management, challan tracking, Form 16A generation |
+| 16 | Correspondence: reminder letters, MCACT-101, committee, meeting minutes |
+| 17 | Administration: users, backup/restore, year-end close/reopen, audit log |
+| 18 | Billing & member reports (RPT-B01–B08, RPT-M01–M08) with preview/print/PDF/CSV and drill-down |
+| 19 | Accounting reports (RPT-A01–A12): TB, BS, I&E, cash/bank books, View menu drill-down reports |
 
 ## Setup
 
@@ -50,6 +55,7 @@ npm run dev
 9. Use **Explorer → Billing** for tariffs, regular bill entry, bulk bill generation, and supplementary bills.
 10. Use **Explorer → Transactions** for vouchers, petty cash, adjustments, bank reconciliation, and cheque printing/cancellation.
 11. Use **Explorer → Statutory** for FD register, property register, sinking fund (read-only), and I-Form membership register.
+12. Use **Explorer → Reports** (or **View** menu) for billing, member, and accounting reports with drill-down to bills and vouchers.
 
 Each society/financial year is stored in its own `.sqlite` file.
 

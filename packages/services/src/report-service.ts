@@ -1,6 +1,6 @@
 import { writeFile } from 'node:fs/promises';
 import type { Prisma, PrismaClient } from '@prisma/client';
-import { BillStatus, BillType, UnitStatus } from '@prisma/client';
+import { BillStatus, BillType, UnitStatus, VoucherStatus } from '@prisma/client';
 import { FdStatus, LetterType } from '@sams/shared-types';
 import type {
   ReportCatalogEntryDto,
@@ -21,6 +21,20 @@ import {
 } from './statutory-register-service.js';
 import { listParkingAssignments } from './parking-service.js';
 import { listGeneratedLetters } from './correspondence-service.js';
+import {
+  queryBalanceSheet,
+  queryBankBook,
+  queryBankDepositSlip,
+  queryBankReconciliationStatement,
+  queryCashBook,
+  queryDayBook,
+  queryGeneralLedger,
+  queryIncomeExpenditure,
+  queryPettyCashRegister,
+  queryReceiptPaymentStatement,
+  queryTrialBalance,
+  queryVoucherRegister,
+} from './accounting-reports.js';
 
 function toNumber(value: Prisma.Decimal | number | null | undefined): number {
   if (value == null) return 0;
@@ -53,6 +67,18 @@ const REPORT_CATALOG: ReportCatalogEntryDto[] = [
   { reportId: 'RPT-M06', title: 'Property Register', category: 'member', supportsDrillDown: false },
   { reportId: 'RPT-M07', title: 'FD Register', category: 'member', supportsDrillDown: false },
   { reportId: 'RPT-M08', title: 'Sinking Fund Register', category: 'member', supportsDrillDown: false },
+  { reportId: 'RPT-A01', title: 'Voucher Register', category: 'accounting', supportsDrillDown: true },
+  { reportId: 'RPT-A02', title: 'Cash Book', category: 'accounting', supportsDrillDown: true },
+  { reportId: 'RPT-A03', title: 'Bank Book', category: 'accounting', supportsDrillDown: true },
+  { reportId: 'RPT-A04', title: 'General Ledger', category: 'accounting', supportsDrillDown: true },
+  { reportId: 'RPT-A05', title: 'Trial Balance', category: 'accounting', supportsDrillDown: false },
+  { reportId: 'RPT-A06', title: 'Balance Sheet', category: 'accounting', supportsDrillDown: false },
+  { reportId: 'RPT-A07', title: 'Income & Expenditure', category: 'accounting', supportsDrillDown: false },
+  { reportId: 'RPT-A08', title: 'Receipt & Payment Statement', category: 'accounting', supportsDrillDown: false },
+  { reportId: 'RPT-A09', title: 'Bank Reconciliation Statement', category: 'accounting', supportsDrillDown: false },
+  { reportId: 'RPT-A10', title: 'Bank Deposit Slip', category: 'accounting', supportsDrillDown: true },
+  { reportId: 'RPT-A11', title: 'Day Book', category: 'accounting', supportsDrillDown: true },
+  { reportId: 'RPT-A12', title: 'Petty Cash Register', category: 'accounting', supportsDrillDown: true },
 ];
 
 export function listReportCatalog(): ReportCatalogEntryDto[] {
@@ -184,6 +210,11 @@ async function queryMemberLedger(
     { key: 'balance', label: 'Balance', align: 'right', format: 'currency' },
   ];
 
+  const member = await client.member.findUniqueOrThrow({
+    where: { id: memberId },
+    include: { subsidiaryLedger: { select: { id: true } } },
+  });
+
   const bills = await client.bill.findMany({
     where: {
       memberId,
@@ -200,23 +231,44 @@ async function queryMemberLedger(
     orderBy: { billDate: 'asc' },
   });
 
-  const settlements = await client.billSettlement.findMany({
+  const voucherLineFilter = member.subsidiaryLedger
+    ? {
+        OR: [{ memberId }, { accountMasterId: member.subsidiaryLedger.id }],
+      }
+    : { memberId };
+
+  const voucherLines = await client.voucherLine.findMany({
     where: {
-      bill: { memberId },
-      ...(dateFrom || dateTo
-        ? {
-            settlementDate: {
-              ...(dateFrom ? { gte: dateFrom } : {}),
-              ...(dateTo ? { lte: dateTo } : {}),
-            },
-          }
-        : {}),
+      ...voucherLineFilter,
+      voucher: {
+        status: VoucherStatus.POSTED,
+        ...(dateFrom || dateTo
+          ? {
+              voucherDate: {
+                ...(dateFrom ? { gte: dateFrom } : {}),
+                ...(dateTo ? { lte: dateTo } : {}),
+              },
+            }
+          : {}),
+      },
     },
-    include: { bill: true, voucher: true },
-    orderBy: { settlementDate: 'asc' },
+    include: {
+      voucher: {
+        select: { id: true, systemVoucherNo: true, voucherDate: true, voucherType: true },
+      },
+    },
+    orderBy: [{ voucher: { voucherDate: 'asc' } }, { lineNo: 'asc' }],
   });
 
-  type Entry = { date: Date; particulars: string; refNo: string; debit: number; credit: number };
+  type Entry = {
+    date: Date;
+    particulars: string;
+    refNo: string;
+    debit: number;
+    credit: number;
+    drillDown?: ReportRow['drillDown'];
+  };
+
   const entries: Entry[] = [
     ...bills.map((b) => ({
       date: b.billDate,
@@ -224,16 +276,15 @@ async function queryMemberLedger(
       refNo: b.systemBillNo,
       debit: toNumber(b.billAmount),
       credit: 0,
+      drillDown: { refType: 'BILL' as const, refId: b.id },
     })),
-    ...settlements.map((s) => ({
-      date: s.settlementDate,
-      particulars: `Receipt / Settlement`,
-      refNo: s.voucher?.systemVoucherNo ?? '—',
-      debit: 0,
-      credit:
-        toNumber(s.principalAllocated) +
-        toNumber(s.interestAllocated) +
-        toNumber(s.serviceTaxAllocated),
+    ...voucherLines.map((line) => ({
+      date: line.voucher.voucherDate,
+      particulars: `${line.voucher.voucherType} — ${line.particulars ?? 'Voucher entry'}`,
+      refNo: line.voucher.systemVoucherNo,
+      debit: toNumber(line.drAmount),
+      credit: toNumber(line.crAmount),
+      drillDown: { refType: 'VOUCHER' as const, refId: line.voucher.id },
     })),
   ].sort((a, b) => a.date.getTime() - b.date.getTime());
 
@@ -249,6 +300,7 @@ async function queryMemberLedger(
         credit: entry.credit || null,
         balance,
       },
+      drillDown: entry.drillDown,
     };
   });
 
@@ -893,6 +945,30 @@ export async function runReport(
       return queryFdRegister(client, parameters);
     case 'RPT-M08':
       return querySinkingFundRegister(client, parameters);
+    case 'RPT-A01':
+      return queryVoucherRegister(client, parameters);
+    case 'RPT-A02':
+      return queryCashBook(client, parameters);
+    case 'RPT-A03':
+      return queryBankBook(client, parameters);
+    case 'RPT-A04':
+      return queryGeneralLedger(client, parameters);
+    case 'RPT-A05':
+      return queryTrialBalance(client, parameters);
+    case 'RPT-A06':
+      return queryBalanceSheet(client, parameters);
+    case 'RPT-A07':
+      return queryIncomeExpenditure(client, parameters);
+    case 'RPT-A08':
+      return queryReceiptPaymentStatement(client, parameters);
+    case 'RPT-A09':
+      return queryBankReconciliationStatement(client, parameters);
+    case 'RPT-A10':
+      return queryBankDepositSlip(client, parameters);
+    case 'RPT-A11':
+      return queryDayBook(client, parameters);
+    case 'RPT-A12':
+      return queryPettyCashRegister(client, parameters);
     default:
       throw new Error(`Unknown report: ${reportId}`);
   }
