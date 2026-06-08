@@ -64,6 +64,7 @@ const explorerNodes: ExplorerGroup[] = [
     children: [
       { id: 'mem-reg', label: 'Member Register', route: '/app/members/register', permission: { resource: 'members', action: PermissionAction.READ } },
       { id: 'mem-tenant', label: 'Tenants', route: '/app/members/tenants', permission: { resource: 'members', action: PermissionAction.READ } },
+      { id: 'mem-import', label: 'CSV Import', route: '/app/members/import', permission: { resource: 'members', action: PermissionAction.CREATE } },
     ],
   },
   {
@@ -159,6 +160,9 @@ const explorerNodes: ExplorerGroup[] = [
       { id: 'rpt-a10', label: 'Bank Deposit Slip', route: '/app/reports/RPT-A10', permission: { resource: 'reports', action: PermissionAction.READ } },
       { id: 'rpt-a11', label: 'Day Book', route: '/app/reports/RPT-A11', permission: { resource: 'reports', action: PermissionAction.READ } },
       { id: 'rpt-a12', label: 'Petty Cash Register', route: '/app/reports/RPT-A12', permission: { resource: 'reports', action: PermissionAction.READ } },
+      { id: 'rpt-t01', label: 'TDS Register', route: '/app/reports/RPT-T01', permission: { resource: 'reports', action: PermissionAction.READ } },
+      { id: 'rpt-t02', label: 'TDS Challan Register', route: '/app/reports/RPT-T02', permission: { resource: 'reports', action: PermissionAction.READ } },
+      { id: 'rpt-t03', label: 'Form 16A Report', route: '/app/reports/RPT-T03', permission: { resource: 'reports', action: PermissionAction.READ } },
     ],
   },
   {

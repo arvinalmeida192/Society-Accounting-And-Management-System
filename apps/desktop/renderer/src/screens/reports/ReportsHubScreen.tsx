@@ -31,6 +31,7 @@ export function ReportsHubScreen(): React.ReactElement {
   const billing = catalog.filter((entry) => entry.category === 'billing');
   const member = catalog.filter((entry) => entry.category === 'member');
   const accounting = catalog.filter((entry) => entry.category === 'accounting');
+  const statutory = catalog.filter((entry) => entry.category === 'statutory');
 
   return (
     <section className="form-screen">
@@ -52,6 +53,17 @@ export function ReportsHubScreen(): React.ReactElement {
       <h3>Member Reports</h3>
       <ul className="report-catalog">
         {member.map((entry) => (
+          <li key={entry.reportId}>
+            <button type="button" onClick={() => openReport(entry)}>
+              {entry.reportId} — {entry.title}
+            </button>
+          </li>
+        ))}
+      </ul>
+
+      <h3>Statutory / TDS Reports</h3>
+      <ul className="report-catalog">
+        {statutory.map((entry) => (
           <li key={entry.reportId}>
             <button type="button" onClick={() => openReport(entry)}>
               {entry.reportId} — {entry.title}

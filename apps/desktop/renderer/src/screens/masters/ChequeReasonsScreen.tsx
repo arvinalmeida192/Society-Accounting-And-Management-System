@@ -1,6 +1,6 @@
 import { useCallback, useEffect, useState } from 'react';
 import type { ChequeCancellationReasonDto, DishonouredChequeDto } from '@sams/shared-types';
-import { AuditIdentityModal, ConfirmDialog, MasterFormToolbar } from '../../components';
+import { AuditIdentityModal, ConfirmDialog, MasterFormToolbar, VoucherReadonlyModal } from '../../components';
 import { useFormState } from '../../hooks/useFormState';
 import { getIpcErrorMessage } from '../../hooks/session';
 
@@ -24,6 +24,7 @@ export function ChequeReasonsScreen(): React.ReactElement {
   const [message, setMessage] = useState<string | null>(null);
   const [auditOpen, setAuditOpen] = useState(false);
   const [confirmDelete, setConfirmDelete] = useState(false);
+  const [drillVoucherId, setDrillVoucherId] = useState<string | null>(null);
 
   const loadList = useCallback(async (): Promise<void> => {
     const response = await window.sams.masters.listChequeReasons();
@@ -145,8 +146,10 @@ export function ChequeReasonsScreen(): React.ReactElement {
                 <ul>
                   {dishonoured.map((row) => (
                     <li key={row.id}>
-                      Cheque {row.chequeNo} — ₹{row.amount.toFixed(2)} — cancelled{' '}
-                      {row.cancelledOn?.slice(0, 10)} — Voucher {row.voucherId.slice(0, 8)}…
+                      <button type="button" className="link-button" onClick={() => setDrillVoucherId(row.voucherId)}>
+                        Cheque {row.chequeNo} — ₹{row.amount.toFixed(2)} — cancelled{' '}
+                        {row.cancelledOn?.slice(0, 10)} — Voucher {row.voucherId.slice(0, 8)}
+                      </button>
                     </li>
                   ))}
                 </ul>
@@ -183,6 +186,11 @@ export function ChequeReasonsScreen(): React.ReactElement {
           updatedBy: form.value.updatedBy,
         }}
         onClose={() => setAuditOpen(false)}
+      />
+
+      <VoucherReadonlyModal
+        voucherId={drillVoucherId}
+        onClose={() => setDrillVoucherId(null)}
       />
     </section>
   );

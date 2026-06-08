@@ -8,7 +8,7 @@ Offline-first Electron desktop application for co-operative housing society acco
 - `SDD.md` — Software Design Document
 - `Development_Plan.md` — Phased implementation plan
 
-## Current status: Phase 19 complete
+## Current status: Phase 20 complete
 
 | Phase | Scope |
 | ----- | ----- |
@@ -31,6 +31,7 @@ Offline-first Electron desktop application for co-operative housing society acco
 | 17 | Administration: users, backup/restore, year-end close/reopen, audit log |
 | 18 | Billing & member reports (RPT-B01–B08, RPT-M01–M08) with preview/print/PDF/CSV and drill-down |
 | 19 | Accounting reports (RPT-A01–A12): TB, BS, I&E, cash/bank books, View menu drill-down reports |
+| 20 | TDS reports (RPT-T01–T03), CSV member import, report template assets, audit fixes |
 
 ## Setup
 

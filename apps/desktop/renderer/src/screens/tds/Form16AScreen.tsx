@@ -1,11 +1,14 @@
 import { useCallback, useEffect, useState } from 'react';
 import { PartyType, type AddressBookEntryDto } from '@sams/shared-types';
 import { getIpcErrorMessage } from '../../hooks/session';
+import { useSession } from '../../hooks/SessionContext';
 
 /** TDS-003 — Form 16A generation with address validation (GAP-020–022). */
 export function Form16AScreen(): React.ReactElement {
+  const { session } = useSession();
   const [allEntries, setAllEntries] = useState<AddressBookEntryDto[]>([]);
   const [partyAccountId, setPartyAccountId] = useState('');
+  const [financialYearId, setFinancialYearId] = useState(session?.financialYearId ?? '');
   const [error, setError] = useState<string | null>(null);
   const [message, setMessage] = useState<string | null>(null);
   const [resultPath, setResultPath] = useState<string | null>(null);
@@ -30,6 +33,10 @@ export function Form16AScreen(): React.ReactElement {
     void loadParties();
   }, [loadParties]);
 
+  useEffect(() => {
+    if (session?.financialYearId) setFinancialYearId(session.financialYearId);
+  }, [session?.financialYearId]);
+
   const generate = async (): Promise<void> => {
     if (!partyAccountId) {
       setError('Select a party with a complete Address Book entry.');
@@ -39,7 +46,10 @@ export function Form16AScreen(): React.ReactElement {
     setError(null);
     setMessage(null);
     setResultPath(null);
-    const response = await window.sams.tds.generateForm16A({ partyAccountId });
+    const response = await window.sams.tds.generateForm16A({
+      partyAccountId,
+      financialYearId: financialYearId || undefined,
+    });
     setGenerating(false);
     if (!response.success || !response.data) {
       setError(getIpcErrorMessage(response.error));
@@ -75,6 +85,15 @@ export function Form16AScreen(): React.ReactElement {
       </p>
 
       <div className="form-grid">
+        <label>
+          Financial Year
+          <input
+            type="text"
+            readOnly
+            value={session?.fyLabel ?? financialYearId}
+            title="Form 16A uses the active session financial year"
+          />
+        </label>
         <label>
           Party (deductee) *
           <select

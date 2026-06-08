@@ -78,6 +78,7 @@ export function ReportViewerScreen(): React.ReactElement {
   const [ledgerAccounts, setLedgerAccounts] = useState<AccountPickerItem[]>([]);
 
   const [memberId, setMemberId] = useState(searchParams.get('memberId') ?? '');
+  const [partyAccountId, setPartyAccountId] = useState(searchParams.get('partyAccountId') ?? '');
   const [periodFrom, setPeriodFrom] = useState('');
   const [periodTo, setPeriodTo] = useState('');
   const [dateFrom, setDateFrom] = useState('');
@@ -86,7 +87,7 @@ export function ReportViewerScreen(): React.ReactElement {
   const [dayDate, setDayDate] = useState(new Date().toISOString().slice(0, 10));
   const [buildingId, setBuildingId] = useState('');
   const [wingId, setWingId] = useState('');
-  const [accountId, setAccountId] = useState('');
+  const [accountId, setAccountId] = useState(searchParams.get('accountId') ?? '');
   const [bankAccountId, setBankAccountId] = useState('');
   const [bankSlipNo, setBankSlipNo] = useState('');
   const [voucherType, setVoucherType] = useState('');
@@ -101,6 +102,8 @@ export function ReportViewerScreen(): React.ReactElement {
 
   const [drillBillId, setDrillBillId] = useState<string | null>(null);
   const [drillVoucherId, setDrillVoucherId] = useState<string | null>(null);
+  const [letterPreviewHtml, setLetterPreviewHtml] = useState<string | null>(null);
+  const [letterPreviewOpen, setLetterPreviewOpen] = useState(false);
 
   const parameters = useMemo(
     () => ({
@@ -118,9 +121,11 @@ export function ReportViewerScreen(): React.ReactElement {
       ...(bankSlipNo ? { bankSlipNo } : {}),
       ...(voucherType ? { voucherType } : {}),
       ...(search ? { search } : {}),
+      ...(partyAccountId ? { partyAccountId } : {}),
     }),
     [
       memberId,
+      partyAccountId,
       periodFrom,
       periodTo,
       dateFrom,
@@ -222,9 +227,12 @@ export function ReportViewerScreen(): React.ReactElement {
       return;
     }
     if (drillDown.refType === 'GENERATED_LETTER') {
-      const route = '/app/correspondence/reminders';
-      openTab({ id: 'cor-rem', title: 'Reminder Letters', route });
-      navigate(route);
+      void (async () => {
+        const response = await window.sams.correspondence.getGeneratedLetter(drillDown.refId);
+        if (!response.success || !response.data) return;
+        setLetterPreviewHtml(response.data.renderedHtml);
+        setLetterPreviewOpen(true);
+      })();
     }
   };
 
@@ -459,6 +467,14 @@ export function ReportViewerScreen(): React.ReactElement {
         open={Boolean(drillVoucherId)}
         voucherId={drillVoucherId}
         onClose={() => setDrillVoucherId(null)}
+      />
+
+      <PrintPreviewModal
+        open={letterPreviewOpen}
+        title="Reminder Letter"
+        html={letterPreviewHtml ?? ''}
+        onClose={() => setLetterPreviewOpen(false)}
+        onPrint={() => window.print()}
       />
     </section>
   );

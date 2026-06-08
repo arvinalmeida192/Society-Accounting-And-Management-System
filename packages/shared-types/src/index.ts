@@ -169,6 +169,9 @@ export const IpcChannels = {
   BILLING_PREVIEW_SUPPLEMENTARY: 'billing:previewSupplementaryBill',
   BILLING_SAVE_SUPPLEMENTARY: 'billing:saveSupplementaryBill',
   BILLING_PRINT_REGULAR: 'billing:printRegularBill',
+  BILLING_PRINT_SUPPLEMENTARY: 'billing:printSupplementaryBill',
+  BILLING_CALCULATE_INTEREST: 'billing:calculateInterest',
+  BILLING_OPEN_REFERENCE: 'billing:openReference',
   VOUCHER_LIST: 'voucher:list',
   VOUCHER_GET: 'voucher:get',
   VOUCHER_PREVIEW_POST: 'voucher:previewPost',
@@ -246,6 +249,10 @@ export const IpcChannels = {
   REPORT_EXPORT_CSV: 'report:exportCsv',
   REPORT_EXPORT_PDF: 'report:exportPdf',
   REPORT_PRINT: 'report:print',
+  IMPORT_MEMBER_CSV_TEMPLATE: 'import:memberCsvTemplate',
+  IMPORT_MEMBER_CSV_VALIDATE: 'import:memberCsvValidate',
+  IMPORT_MEMBER_CSV_COMMIT: 'import:memberCsvCommit',
+  IMPORT_PICK_MEMBER_CSV: 'import:pickMemberCsv',
 } as const;
 
 export type IpcChannel = (typeof IpcChannels)[keyof typeof IpcChannels] | string;
@@ -2311,7 +2318,41 @@ export type ReportId =
   | 'RPT-A09'
   | 'RPT-A10'
   | 'RPT-A11'
-  | 'RPT-A12';
+  | 'RPT-A12'
+  | 'RPT-T01'
+  | 'RPT-T02'
+  | 'RPT-T03';
+
+export interface MemberCsvRowError {
+  rowNumber: number;
+  field: string;
+  message: string;
+}
+
+export interface MemberCsvValidationResultDto {
+  valid: boolean;
+  rowCount: number;
+  errors: MemberCsvRowError[];
+}
+
+export interface MemberCsvCommitResultDto {
+  imported: number;
+}
+
+export interface MemberCsvTemplateResultDto {
+  path: string;
+}
+
+export interface BillReferenceNavigationDto {
+  tabId: string;
+  title: string;
+  route: string;
+}
+
+export interface BillInterestCalculationResultDto {
+  totalInterest: number;
+  details: BillInterestDetailDto[];
+}
 
 export interface ReportColumnDef {
   key: string;
@@ -2354,7 +2395,7 @@ export interface ReportResultDto {
 export interface ReportCatalogEntryDto {
   reportId: ReportId;
   title: string;
-  category: 'billing' | 'member' | 'accounting';
+  category: 'billing' | 'member' | 'accounting' | 'statutory';
   supportsDrillDown: boolean;
 }
 

@@ -19,8 +19,11 @@ import {
   listPropertyRegister,
   listSinkingFundEntries,
 } from './statutory-register-service.js';
-import { listParkingAssignments } from './parking-service.js';
 import { listGeneratedLetters } from './correspondence-service.js';
+import { listTdsChallans, listTdsRecords } from './tds-service.js';
+import { generateForm16A } from './form16a-service.js';
+import { tmpdir } from 'node:os';
+import { join } from 'node:path';
 import {
   queryBalanceSheet,
   queryBankBook,
@@ -79,6 +82,9 @@ const REPORT_CATALOG: ReportCatalogEntryDto[] = [
   { reportId: 'RPT-A10', title: 'Bank Deposit Slip', category: 'accounting', supportsDrillDown: true },
   { reportId: 'RPT-A11', title: 'Day Book', category: 'accounting', supportsDrillDown: true },
   { reportId: 'RPT-A12', title: 'Petty Cash Register', category: 'accounting', supportsDrillDown: true },
+  { reportId: 'RPT-T01', title: 'TDS Register', category: 'statutory', supportsDrillDown: false },
+  { reportId: 'RPT-T02', title: 'TDS Challan Register', category: 'statutory', supportsDrillDown: false },
+  { reportId: 'RPT-T03', title: 'Form 16A', category: 'statutory', supportsDrillDown: false },
 ];
 
 export function listReportCatalog(): ReportCatalogEntryDto[] {
@@ -458,6 +464,41 @@ async function queryTariffwiseSettlement(
     { key: 'outstanding', label: 'Outstanding', align: 'right', format: 'currency' },
   ];
 
+  const agg = new Map<
+    string,
+    { memberName: string; unitNo: string; chargeHead: string; billed: number; recovered: number }
+  >();
+
+  const bills = await client.bill.findMany({
+    where: {
+      billType: BillType.REGULAR,
+      status: BillStatus.POSTED,
+      ...(memberId ? { memberId } : {}),
+    },
+    include: {
+      lines: true,
+      member: { include: { unit: true } },
+    },
+  });
+
+  for (const bill of bills) {
+    if (!bill.memberId) continue;
+    const memberName = bill.member?.memberName ?? '—';
+    const unitNo = bill.member?.unit?.unitNo ?? '—';
+    for (const line of bill.lines) {
+      const key = `${bill.memberId}|${line.chargeName}`;
+      const bucket = agg.get(key) ?? {
+        memberName,
+        unitNo,
+        chargeHead: line.chargeName,
+        billed: 0,
+        recovered: 0,
+      };
+      bucket.billed += toNumber(line.amount);
+      agg.set(key, bucket);
+    }
+  }
+
   const settlements = await client.billSettlement.findMany({
     where: {
       ...(memberId ? { bill: { memberId } } : {}),
@@ -467,7 +508,6 @@ async function queryTariffwiseSettlement(
     },
   });
 
-  const rows: ReportRow[] = [];
   for (const settlement of settlements) {
     let breakdown: Record<string, number> = {};
     try {
@@ -475,21 +515,38 @@ async function queryTariffwiseSettlement(
     } catch {
       breakdown = {};
     }
+    const billMemberId = settlement.bill.memberId;
+    if (!billMemberId) continue;
     const memberName = settlement.bill.member?.memberName ?? '—';
     const unitNo = settlement.bill.member?.unit?.unitNo ?? '—';
     for (const [chargeHead, recovered] of Object.entries(breakdown)) {
-      rows.push({
-        cells: {
-          memberName,
-          unitNo,
-          chargeHead,
-          billed: recovered,
-          recovered,
-          outstanding: 0,
-        },
-      });
+      const key = `${billMemberId}|${chargeHead}`;
+      const bucket = agg.get(key) ?? {
+        memberName,
+        unitNo,
+        chargeHead,
+        billed: 0,
+        recovered: 0,
+      };
+      bucket.recovered += recovered;
+      agg.set(key, bucket);
     }
   }
+
+  const rows: ReportRow[] = [...agg.values()]
+    .map((bucket) => ({
+      cells: {
+        memberName: bucket.memberName,
+        unitNo: bucket.unitNo,
+        chargeHead: bucket.chargeHead,
+        billed: bucket.billed,
+        recovered: bucket.recovered,
+        outstanding: Math.max(0, bucket.billed - bucket.recovered),
+      },
+    }))
+    .sort((a, b) =>
+      String(a.cells.memberName).localeCompare(String(b.cells.memberName)),
+    );
 
   return {
     reportId: 'RPT-B06',
@@ -566,6 +623,7 @@ async function queryReminderLetters(
     { key: 'referenceNo', label: 'Reference No.' },
     { key: 'memberName', label: 'Member' },
     { key: 'generatedAt', label: 'Generated', format: 'date' },
+    { key: 'amountDue', label: 'Amount Due', align: 'right', format: 'currency' },
     { key: 'subject', label: 'Subject' },
   ];
 
@@ -574,6 +632,7 @@ async function queryReminderLetters(
       referenceNo: letter.referenceNo ?? '—',
       memberName: letter.memberName ?? '—',
       generatedAt: letter.issueDate?.slice(0, 10) ?? '—',
+      amountDue: letter.amountDue,
       subject: letter.subject ?? 'Reminder',
     },
     drillDown: { refType: 'GENERATED_LETTER', refId: letter.id },
@@ -739,7 +798,26 @@ async function queryParkingAllocation(
   client: PrismaClient,
   parameters: Record<string, unknown>,
 ): Promise<ReportResultDto> {
-  const assignments = await listParkingAssignments(client, parameters.memberId as string | undefined);
+  const memberId = parameters.memberId as string | undefined;
+  const records = await client.memberParkingAssignment.findMany({
+    where: {
+      isActive: true,
+      ...(memberId ? { memberId } : {}),
+    },
+    include: {
+      member: { select: { memberName: true } },
+      parkingSpace: {
+        include: {
+          parkingTariffType: {
+            include: {
+              rates: { orderBy: { effectiveDate: 'desc' }, take: 1 },
+            },
+          },
+        },
+      },
+    },
+    orderBy: { purchaseDate: 'desc' },
+  });
 
   const columns: ReportColumnDef[] = [
     { key: 'memberName', label: 'Member' },
@@ -748,24 +826,179 @@ async function queryParkingAllocation(
     { key: 'monthlyRate', label: 'Monthly Rate', align: 'right', format: 'currency' },
   ];
 
-  const memberNames = new Map(
-    (
-      await listMembers(client, { status: 'all' })
-    ).items.map((m) => [m.id, m.memberName]),
-  );
-
-  const rows: ReportRow[] = assignments.map((a) => ({
+  const rows: ReportRow[] = records.map((a) => ({
     cells: {
-      memberName: memberNames.get(a.memberId) ?? '—',
-      parkingNo: a.parkingNo ?? '—',
-      parkingType: '—',
-      monthlyRate: 0,
+      memberName: a.member.memberName,
+      parkingNo: a.parkingSpace.parkingNo,
+      parkingType: a.parkingSpace.parkingTariffType.typeName,
+      monthlyRate: toNumber(a.parkingSpace.parkingTariffType.rates[0]?.monthlyRate),
     },
   }));
 
   return {
     reportId: 'RPT-M04',
     title: 'Parking Allocation',
+    columns,
+    rows,
+    metadata: await reportMeta(client, parameters, false),
+  };
+}
+
+async function queryTdsRegister(
+  client: PrismaClient,
+  parameters: Record<string, unknown>,
+): Promise<ReportResultDto> {
+  const fyId = (parameters.financialYearId as string | undefined) ?? (await getActiveFinancialYearId(client));
+  const records = await listTdsRecords(client, {
+    financialYearId: fyId ?? undefined,
+    partyAccountId: parameters.partyAccountId as string | undefined,
+    search: parameters.search as string | undefined,
+  });
+
+  const columns: ReportColumnDef[] = [
+    { key: 'paymentDate', label: 'Payment Date', format: 'date' },
+    { key: 'partyName', label: 'Party' },
+    { key: 'natureOfPayment', label: 'Nature' },
+    { key: 'taxableAmount', label: 'Taxable', align: 'right', format: 'currency' },
+    { key: 'tdsRate', label: 'Rate %', align: 'right', format: 'number' },
+    { key: 'totalAmount', label: 'TDS Amount', align: 'right', format: 'currency' },
+    { key: 'challanNo', label: 'Challan No.' },
+    { key: 'systemVoucherNo', label: 'Voucher No.' },
+  ];
+
+  const rows: ReportRow[] = records.map((record) => ({
+    cells: {
+      paymentDate: record.paymentDate,
+      partyName: record.partyName,
+      natureOfPayment: record.natureOfPayment ?? '—',
+      taxableAmount: record.taxableAmount,
+      tdsRate: record.tdsRate,
+      totalAmount: record.totalAmount,
+      challanNo: record.challan?.challanNo ?? '—',
+      systemVoucherNo: record.systemVoucherNo ?? '—',
+    },
+  }));
+
+  return {
+    reportId: 'RPT-T01',
+    title: 'TDS Register',
+    columns,
+    rows,
+    metadata: await reportMeta(client, parameters, false, 'landscape'),
+  };
+}
+
+async function queryTdsChallanRegister(
+  client: PrismaClient,
+  parameters: Record<string, unknown>,
+): Promise<ReportResultDto> {
+  const fyId = (parameters.financialYearId as string | undefined) ?? (await getActiveFinancialYearId(client));
+  const challans = await listTdsChallans(client, fyId ?? undefined);
+
+  const columns: ReportColumnDef[] = [
+    { key: 'challanNo', label: 'Challan No.' },
+    { key: 'challanDate', label: 'Challan Date', format: 'date' },
+    { key: 'bankName', label: 'Bank' },
+    { key: 'branchName', label: 'Branch' },
+    { key: 'bsrCode', label: 'BSR Code' },
+    { key: 'linkedRecords', label: 'Linked TDS Records', align: 'right', format: 'number' },
+    { key: 'totalAmount', label: 'Total TDS', align: 'right', format: 'currency' },
+  ];
+
+  const rows: ReportRow[] = [];
+  for (const challan of challans) {
+    const linked = await client.tdsRecord.findMany({
+      where: { challanId: challan.id },
+      select: { totalAmount: true },
+    });
+    const totalAmount = linked.reduce((sum, row) => sum + toNumber(row.totalAmount), 0);
+    rows.push({
+      cells: {
+        challanNo: challan.challanNo ?? '—',
+        challanDate: challan.challanDate ?? '—',
+        bankName: challan.bankName ?? '—',
+        branchName: challan.branchName ?? '—',
+        bsrCode: challan.bsrCode ?? '—',
+        linkedRecords: linked.length,
+        totalAmount,
+      },
+    });
+  }
+
+  return {
+    reportId: 'RPT-T02',
+    title: 'TDS Challan Register',
+    columns,
+    rows,
+    metadata: await reportMeta(client, parameters, false, 'landscape'),
+  };
+}
+
+async function queryForm16AReport(
+  client: PrismaClient,
+  parameters: Record<string, unknown>,
+): Promise<ReportResultDto> {
+  const partyAccountId = parameters.partyAccountId as string | undefined;
+  const fyId =
+    (parameters.financialYearId as string | undefined) ?? (await getActiveFinancialYearId(client));
+
+  const columns: ReportColumnDef[] = [
+    { key: 'partyName', label: 'Party' },
+    { key: 'financialYear', label: 'Financial Year' },
+    { key: 'groupCount', label: 'Summary Groups', align: 'right', format: 'number' },
+    { key: 'totalDeductions', label: 'Total TDS', align: 'right', format: 'currency' },
+    { key: 'status', label: 'Status' },
+  ];
+
+  if (!partyAccountId) {
+    const records = await listTdsRecords(client, { financialYearId: fyId ?? undefined });
+    const parties = new Map<string, string>();
+    for (const record of records) {
+      if (record.partyAccountId) parties.set(record.partyAccountId, record.partyName);
+    }
+    const rows: ReportRow[] = [];
+    for (const [accountId, partyName] of parties) {
+      const partyRecords = records.filter((r) => r.partyAccountId === accountId);
+      const total = partyRecords.reduce((sum, r) => sum + r.totalAmount, 0);
+      rows.push({
+        cells: {
+          partyName,
+          financialYear: (await getActiveFinancialYear(client)).label,
+          groupCount: new Set(
+            partyRecords.map((r) => `${r.natureOfPayment}|${r.challan?.challanNo ?? ''}`),
+          ).size,
+          totalDeductions: total,
+          status: 'Select party and re-run with party filter',
+        },
+      });
+    }
+    return {
+      reportId: 'RPT-T03',
+      title: 'Form 16A — Party Summary',
+      columns,
+      rows,
+      metadata: await reportMeta(client, parameters, false),
+    };
+  }
+
+  if (!fyId) throw new Error('Financial year is required for Form 16A report.');
+  const result = await generateForm16A(client, partyAccountId, fyId, join(tmpdir(), 'sams-form16a'));
+
+  const rows: ReportRow[] = [
+    {
+      cells: {
+        partyName: result.partyName ?? '—',
+        financialYear: result.financialYearLabel ?? '—',
+        groupCount: result.groupCount ?? 0,
+        totalDeductions: result.totalDeductions ?? 0,
+        status: result.blocked ? (result.reason ?? 'Blocked') : `Generated: ${result.htmlPath ?? ''}`,
+      },
+    },
+  ];
+
+  return {
+    reportId: 'RPT-T03',
+    title: 'Form 16A Certificate',
     columns,
     rows,
     metadata: await reportMeta(client, parameters, false),
@@ -969,6 +1202,12 @@ export async function runReport(
       return queryDayBook(client, parameters);
     case 'RPT-A12':
       return queryPettyCashRegister(client, parameters);
+    case 'RPT-T01':
+      return queryTdsRegister(client, parameters);
+    case 'RPT-T02':
+      return queryTdsChallanRegister(client, parameters);
+    case 'RPT-T03':
+      return queryForm16AReport(client, parameters);
     default:
       throw new Error(`Unknown report: ${reportId}`);
   }

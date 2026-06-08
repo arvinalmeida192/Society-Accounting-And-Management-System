@@ -1,7 +1,10 @@
 import { PermissionAction } from '@sams/shared-types';
 import type {
+  BillInterestCalculationResultDto,
   BillInterestDetailDto,
   BillPrintDto,
+  BillReferenceNavigationDto,
+  BillReferenceType,
   BillSettlementDto,
   BillSummaryDto,
   BillToType,
@@ -30,6 +33,10 @@ import {
   saveRegularBill,
   saveSupplementaryBill,
   prepareRegularBillPrintData,
+  prepareSupplementaryBillPrintData,
+  resolveBillReferenceNavigation,
+  calculateInterest,
+  getSocietyParameters,
 } from '@sams/services';
 import { getActivePrisma } from '../../database/database-manager.js';
 import { sessionManager } from '../../session/session-manager.js';
@@ -139,6 +146,50 @@ export const billingHandlers = {
     prepareRegularBillPrintData(getActivePrisma(), payload.billId)) as IpcHandler<
     { billId: string },
     BillPrintDto
+  >,
+
+  printSupplementaryBill: (async (_ctx, payload: { billId: string }) =>
+    prepareSupplementaryBillPrintData(getActivePrisma(), payload.billId)) as IpcHandler<
+    { billId: string },
+    BillPrintDto
+  >,
+
+  calculateInterest: (async (
+    _ctx,
+    payload: RegularBillPreviewDto & { billType?: 'REGULAR' | 'SUPPLEMENTARY' },
+  ) => {
+    const parameters = await getSocietyParameters(getActivePrisma());
+    const billDate = new Date(payload.billDate);
+    const isSupplementary = payload.billType === 'SUPPLEMENTARY';
+    const pattern = isSupplementary
+      ? parameters.supplementaryInterestPattern
+      : parameters.regularInterestPattern;
+    const rate = isSupplementary
+      ? parameters.supplementaryInterestRate
+      : parameters.regularInterestRate;
+    return calculateInterest(getActivePrisma(), {
+      billType: isSupplementary ? 'SUPPLEMENTARY' : 'REGULAR',
+      memberId: payload.memberId ?? '',
+      billDate,
+      interestPattern: pattern,
+      simpleSubType: parameters.simpleInterestSubType,
+      annualRate: rate,
+      roundToRupee: parameters.interestRoundToRupee,
+      allowOverride: isSupplementary
+        ? parameters.supplementaryAllowManualOverride
+        : parameters.regularAllowManualOverride,
+      overrideAmount: payload.interestOverride,
+      chargeInterest: true,
+    });
+  }) as IpcHandler<
+    RegularBillPreviewDto & { billType?: 'REGULAR' | 'SUPPLEMENTARY' },
+    BillInterestCalculationResultDto
+  >,
+
+  openReference: (async (_ctx, payload: { billId: string; refType: BillReferenceType }) =>
+    resolveBillReferenceNavigation(getActivePrisma(), payload.billId, payload.refType)) as IpcHandler<
+    { billId: string; refType: BillReferenceType },
+    BillReferenceNavigationDto
   >,
 };
 

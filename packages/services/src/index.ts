@@ -86,7 +86,22 @@ export {
   getSupplementaryBill,
   assertNotDuplicateSupplementaryBill,
 } from './billing-service.js';
-export { prepareRegularBillPrintData } from './bill-print-service.js';
+export {
+  prepareRegularBillPrintData,
+  prepareSupplementaryBillPrintData,
+  resolveBillReferenceNavigation,
+  type BillReferenceNavigationDto,
+} from './bill-print-service.js';
+export {
+  writeMemberCsvTemplate,
+  validateMemberCsv,
+  commitMemberCsv,
+  memberCsvTemplateContent,
+  MEMBER_CSV_HEADERS,
+  type MemberCsvRowError,
+  type MemberCsvValidationResult,
+  type MemberCsvCommitResult,
+} from './import-service.js';
 export {
   allocateToBill,
   allocateRegularSettlement,

@@ -1,0 +1,36 @@
+<div class="bill-print bill-r1">
+  <header class="bill-header">
+    <h1>{{society.name}}</h1>
+    <p class="bill-address">{{society.address}}</p>
+    <h2>Maintenance Bill</h2>
+  </header>
+  <section class="bill-meta">
+    <p><strong>Bill For:</strong> {{bill.billForLabel}}</p>
+    <p><strong>Bill No:</strong> {{bill.billNo}} &nbsp;|&nbsp; <strong>Date:</strong> {{bill.billDate}} &nbsp;|&nbsp; <strong>Due:</strong> {{bill.dueDate}}</p>
+    <p><strong>Member:</strong> {{member.name}} &nbsp;|&nbsp; <strong>Unit:</strong> {{unit.label}}</p>
+    <p><strong>Area:</strong> {{unit.area}}</p>
+  </section>
+  <table class="bill-lines">
+    <thead>
+      <tr>
+        <th>Sr.</th>
+        <th>Charge</th>
+        <th class="amount">Amount</th>
+      </tr>
+    </thead>
+    <tbody>
+      {{bill.lines}}
+    </tbody>
+  </table>
+  <section class="bill-totals">
+    <p>Principal Arrears: {{bill.principalArrears}} &nbsp; Interest Arrears: {{bill.interestArrears}}</p>
+    <p>Interest: {{bill.interest}} &nbsp; Service Tax: {{bill.serviceTax}} &nbsp; Rebate: {{bill.rebate}}</p>
+    <p class="bill-amount"><strong>Bill Amount: ₹ {{bill.billAmount}}</strong></p>
+    <p class="bill-remark">{{bill.remark}}</p>
+  </section>
+  <footer class="bill-signatories">
+    <p>{{signatory1}}</p>
+    <p>{{signatory2}}</p>
+    <p>{{signatory3}}</p>
+  </footer>
+</div>

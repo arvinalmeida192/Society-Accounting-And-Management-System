@@ -7,13 +7,15 @@ import {
 import type { ReportResultDto } from '@sams/shared-types';
 
 describe('report-service', () => {
-  it('lists all Phase 18–19 billing, member, and accounting reports', () => {
+  it('lists all Phase 18–20 billing, member, accounting, and TDS reports', () => {
     const catalog = listReportCatalog();
-    expect(catalog).toHaveLength(28);
+    expect(catalog).toHaveLength(31);
     expect(catalog.map((entry) => entry.reportId)).toContain('RPT-B05');
     expect(catalog.map((entry) => entry.reportId)).toContain('RPT-M01');
     expect(catalog.map((entry) => entry.reportId)).toContain('RPT-A05');
     expect(catalog.map((entry) => entry.reportId)).toContain('RPT-A12');
+    expect(catalog.map((entry) => entry.reportId)).toContain('RPT-T01');
+    expect(catalog.map((entry) => entry.reportId)).toContain('RPT-T03');
   });
 
   it('renders HTML with society header and table', () => {

@@ -74,7 +74,11 @@ import {
   type RegularBillSaveDto,
   type BillInterestDetailDto,
   type BillPrintDto,
+  type BillReferenceType,
   type BillSettlementDto,
+  type MemberCsvCommitResultDto,
+  type MemberCsvTemplateResultDto,
+  type MemberCsvValidationResultDto,
   type BulkRegularBillGenerateDto,
   type BillToType,
   type SupplementaryBillDetailDto,
@@ -508,6 +512,31 @@ contextBridge.exposeInMainWorld('sams', {
       invoke(IpcChannels.BILLING_SAVE_SUPPLEMENTARY, payload),
     printRegularBill: (billId: string) =>
       invoke<{ billId: string }, BillPrintDto>(IpcChannels.BILLING_PRINT_REGULAR, { billId }),
+    printSupplementaryBill: (billId: string) =>
+      invoke<{ billId: string }, BillPrintDto>(IpcChannels.BILLING_PRINT_SUPPLEMENTARY, { billId }),
+    calculateInterest: (payload: RegularBillPreviewDto & { billType?: 'REGULAR' | 'SUPPLEMENTARY' }) =>
+      invoke(IpcChannels.BILLING_CALCULATE_INTEREST, payload),
+    openReference: (payload: { billId: string; refType: BillReferenceType }) =>
+      invoke(IpcChannels.BILLING_OPEN_REFERENCE, payload),
+  },
+  import: {
+    memberCsvTemplate: () =>
+      invoke<Record<string, never>, MemberCsvTemplateResultDto>(
+        IpcChannels.IMPORT_MEMBER_CSV_TEMPLATE,
+        {},
+      ),
+    memberCsvValidate: (filePath: string) =>
+      invoke<{ filePath: string }, MemberCsvValidationResultDto>(
+        IpcChannels.IMPORT_MEMBER_CSV_VALIDATE,
+        { filePath },
+      ),
+    memberCsvCommit: (filePath: string) =>
+      invoke<{ filePath: string }, MemberCsvCommitResultDto>(
+        IpcChannels.IMPORT_MEMBER_CSV_COMMIT,
+        { filePath },
+      ),
+    pickMemberCsv: () =>
+      invoke<Record<string, never>, { path: string }>(IpcChannels.IMPORT_PICK_MEMBER_CSV, {}),
   },
   voucher: {
     list: (filter?: {

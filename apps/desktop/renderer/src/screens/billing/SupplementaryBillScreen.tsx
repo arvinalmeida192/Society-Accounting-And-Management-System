@@ -17,6 +17,7 @@ import {
   InterestDetailModal,
   MasterFormToolbar,
   MoneyInput,
+  PrintPreviewModal,
 } from '../../components';
 import { getIpcErrorMessage } from '../../hooks/session';
 
@@ -54,6 +55,8 @@ export function SupplementaryBillScreen(): React.ReactElement {
   const [confirmSave, setConfirmSave] = useState(false);
   const [accountPickerOpen, setAccountPickerOpen] = useState(false);
   const [accountPickerLineIndex, setAccountPickerLineIndex] = useState<number | null>(null);
+  const [billPrintOpen, setBillPrintOpen] = useState(false);
+  const [billPrintHtml, setBillPrintHtml] = useState<string | null>(null);
 
   const loadBase = useCallback(async (): Promise<void> => {
     const [periodRes, memberRes, tenantRes, paramRes, nextRes] = await Promise.all([
@@ -130,6 +133,21 @@ export function SupplementaryBillScreen(): React.ReactElement {
     }
   };
 
+  const printBill = async (): Promise<void> => {
+    if (!bill?.id) {
+      setError('Save the bill before printing.');
+      return;
+    }
+    setError(null);
+    const response = await window.sams.billing.printSupplementaryBill(bill.id);
+    if (!response.success || !response.data) {
+      setError(getIpcErrorMessage(response.error));
+      return;
+    }
+    setBillPrintHtml(response.data.templateHtml);
+    setBillPrintOpen(true);
+  };
+
   const addLine = (): void => {
     setLines((current) => [...current, { ...emptyLine(), srNo: current.length + 1 }]);
   };
@@ -176,6 +194,7 @@ export function SupplementaryBillScreen(): React.ReactElement {
       <MasterFormToolbar
         onSave={() => setConfirmSave(true)}
         onBrowse={() => void preview()}
+        onPrint={() => void printBill()}
         onUserIdentity={() => setAuditOpen(true)}
       />
 
@@ -440,6 +459,13 @@ export function SupplementaryBillScreen(): React.ReactElement {
           setAccountPickerOpen(false);
           setAccountPickerLineIndex(null);
         }}
+      />
+
+      <PrintPreviewModal
+        open={billPrintOpen}
+        title={`Supplementary Bill — ${bill?.systemBillNo ?? ''}`}
+        html={billPrintHtml ?? ''}
+        onClose={() => setBillPrintOpen(false)}
       />
     </section>
   );

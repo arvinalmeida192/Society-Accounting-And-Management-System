@@ -7,6 +7,7 @@ import {
   type BillSettlementAllocationDto,
   type CoaPickerKind,
   type MemberListItemDto,
+  type NarrationMasterDto,
   type OpenBillDto,
   type VoucherLineInputDto,
   type VoucherSaveDto,
@@ -80,6 +81,8 @@ export function VoucherEntryScreen(): React.ReactElement {
   const [chequeLineIndex, setChequeLineIndex] = useState<number | null>(null);
   const [activeLineIndex, setActiveLineIndex] = useState(0);
   const [manualNoWarning, setManualNoWarning] = useState<string | null>(null);
+  const [narrations, setNarrations] = useState<NarrationMasterDto[]>([]);
+  const [narrationShortCode, setNarrationShortCode] = useState('');
 
   const drTotal = useMemo(() => lines.reduce((sum, line) => sum + line.drAmount, 0), [lines]);
   const crTotal = useMemo(() => lines.reduce((sum, line) => sum + line.crAmount, 0), [lines]);
@@ -89,6 +92,17 @@ export function VoucherEntryScreen(): React.ReactElement {
     if (voucherType !== VoucherType.RECEIPT) return 0;
     return Math.min(drTotal, crTotal);
   }, [voucherType, drTotal, crTotal]);
+
+  const loadNarrations = useCallback(async (): Promise<void> => {
+    const response = await window.sams.masters.listNarrations(voucherType);
+    if (response.success && response.data) {
+      setNarrations(response.data.filter((row) => row.isActive));
+    }
+  }, [voucherType]);
+
+  useEffect(() => {
+    void loadNarrations();
+  }, [loadNarrations]);
 
   const loadMembers = useCallback(async (): Promise<void> => {
     const response = await window.sams.member.list();
@@ -418,6 +432,25 @@ export function VoucherEntryScreen(): React.ReactElement {
             onBlur={() => void checkManualNo()}
           />
           {manualNoWarning && <span className="error-text">{manualNoWarning}</span>}
+        </label>
+        <label>
+          Narration Shortcode (BC-013)
+          <select
+            value={narrationShortCode}
+            onChange={(event) => {
+              const code = event.target.value;
+              setNarrationShortCode(code);
+              const match = narrations.find((row) => row.shortCode === code);
+              if (match) setNarration(match.narrationText);
+            }}
+          >
+            <option value="">— Select —</option>
+            {narrations.map((row) => (
+              <option key={row.id} value={row.shortCode}>
+                {row.shortCode} — {row.narrationText.slice(0, 40)}
+              </option>
+            ))}
+          </select>
         </label>
         <label className="full-width">
           Narration

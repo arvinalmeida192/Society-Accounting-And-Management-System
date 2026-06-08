@@ -54,6 +54,11 @@ import {
   billingReadOptions,
 } from './handlers/billing-handler.js';
 import {
+  importHandlers,
+  importReadOptions,
+  importWriteOptions,
+} from './handlers/import-handler.js';
+import {
   voucherHandlers,
   voucherCreateOptions,
   voucherReadOptions,
@@ -576,6 +581,9 @@ export function registerIpcHandlers(appConfig: AppConfigStore): void {
     { channel: IpcChannels.BILLING_PREVIEW_SUPPLEMENTARY, options: billingOptions, handler: billingHandlers.previewSupplementaryBill },
     { channel: IpcChannels.BILLING_SAVE_SUPPLEMENTARY, options: { ...billingCreateOptions, requireSession: true }, handler: billingHandlers.saveSupplementaryBill },
     { channel: IpcChannels.BILLING_PRINT_REGULAR, options: billingReadOptions, handler: billingHandlers.printRegularBill },
+    { channel: IpcChannels.BILLING_PRINT_SUPPLEMENTARY, options: billingReadOptions, handler: billingHandlers.printSupplementaryBill },
+    { channel: IpcChannels.BILLING_CALCULATE_INTEREST, options: billingOptions, handler: billingHandlers.calculateInterest },
+    { channel: IpcChannels.BILLING_OPEN_REFERENCE, options: billingOptions, handler: billingHandlers.openReference },
   ];
 
   for (const entry of billingChannels) {
@@ -794,6 +802,38 @@ export function registerIpcHandlers(appConfig: AppConfigStore): void {
   ];
 
   for (const entry of reportChannels) {
+    ipcMain.handle(entry.channel, async (event, request) =>
+      withIpcPipeline(request, sessionManager.get(), event, {
+        ...entry.options,
+        handler: entry.handler,
+      }),
+    );
+  }
+
+  const importChannels = [
+    {
+      channel: IpcChannels.IMPORT_MEMBER_CSV_TEMPLATE,
+      options: { ...importReadOptions, requireSession: true },
+      handler: importHandlers.memberCsvTemplate,
+    },
+    {
+      channel: IpcChannels.IMPORT_MEMBER_CSV_VALIDATE,
+      options: { ...importReadOptions, requireSession: true },
+      handler: importHandlers.memberCsvValidate,
+    },
+    {
+      channel: IpcChannels.IMPORT_MEMBER_CSV_COMMIT,
+      options: { ...importWriteOptions, requireSession: true },
+      handler: importHandlers.memberCsvCommit,
+    },
+    {
+      channel: IpcChannels.IMPORT_PICK_MEMBER_CSV,
+      options: { ...importReadOptions, requireSession: true },
+      handler: importHandlers.pickMemberCsv,
+    },
+  ];
+
+  for (const entry of importChannels) {
     ipcMain.handle(entry.channel, async (event, request) =>
       withIpcPipeline(request, sessionManager.get(), event, {
         ...entry.options,

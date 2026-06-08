@@ -42,6 +42,7 @@ import { UnitsScreen } from './property/UnitsScreen';
 import { WingsScreen } from './property/WingsScreen';
 import { MembersRegisterScreen } from './members/MembersRegisterScreen';
 import { TenantsScreen } from './members/TenantsScreen';
+import { MemberImportScreen } from './members/MemberImportScreen';
 import { AddressBookScreen } from './masters/AddressBookScreen';
 import { BanksScreen } from './masters/BanksScreen';
 import { ChequeReasonsScreen } from './masters/ChequeReasonsScreen';
@@ -196,6 +197,7 @@ export function MainShell({ session }: MainShellProps): React.ReactElement {
             <Route path="property/parking-assignments" element={<ParkingAssignmentsScreen />} />
             <Route path="members/register" element={<MembersRegisterScreen />} />
             <Route path="members/tenants" element={<TenantsScreen />} />
+            <Route path="members/import" element={<MemberImportScreen />} />
             <Route path="masters/banks" element={<BanksScreen />} />
             <Route path="masters/narrations" element={<NarrationsScreen />} />
             <Route path="masters/address-book" element={<AddressBookScreen />} />
