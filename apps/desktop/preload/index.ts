@@ -110,6 +110,17 @@ import {
   type BankRecGridRow,
   type BankReconciliationStatementDto,
   type BankRecStatus,
+  type FdRegisterDto,
+  type FdStatus,
+  type PropertyRegisterEntryDto,
+  type SinkingFundEntryDto,
+  type IFormRegisterDto,
+  type IFormShareEntryDto,
+  type IFormShareTransferDto,
+  type UpcomingFdMaturityDto,
+  type TdsRecordDto,
+  type TdsChallanDto,
+  type Form16AResultDto,
 } from '@sams/shared-types';
 
 async function invoke<TPayload, TResult>(
@@ -557,6 +568,59 @@ contextBridge.exposeInMainWorld('sams', {
       invoke(IpcChannels.BANKREC_BULK_SET_CLEARING_DATE, payload),
     getStatement: (payload: { bankAccountId: string; asOnDate: string }) =>
       invoke(IpcChannels.BANKREC_GET_STATEMENT, payload),
+  },
+  registers: {
+    listFd: (filter?: { status?: FdStatus; search?: string }) =>
+      invoke(IpcChannels.REGISTERS_FD_LIST, filter ?? {}),
+    getFd: (id: string) => invoke<{ id: string }, FdRegisterDto>(IpcChannels.REGISTERS_FD_GET, { id }),
+    saveFd: (payload: FdRegisterDto) => invoke(IpcChannels.REGISTERS_FD_SAVE, payload),
+    deleteFd: (id: string) =>
+      invoke<{ id: string }, { deleted: boolean }>(IpcChannels.REGISTERS_FD_DELETE, { id }),
+    upcomingFdMaturities: (daysAhead?: number) =>
+      invoke<{ daysAhead?: number }, UpcomingFdMaturityDto[]>(
+        IpcChannels.REGISTERS_FD_UPCOMING_MATURITIES,
+        { daysAhead },
+      ),
+    listProperty: (filter?: string) =>
+      invoke<{ filter?: string }, PropertyRegisterEntryDto[]>(
+        IpcChannels.REGISTERS_PROPERTY_LIST,
+        { filter },
+      ),
+    getProperty: (id: string) =>
+      invoke<{ id: string }, PropertyRegisterEntryDto>(IpcChannels.REGISTERS_PROPERTY_GET, { id }),
+    saveProperty: (payload: PropertyRegisterEntryDto) =>
+      invoke(IpcChannels.REGISTERS_PROPERTY_SAVE, payload),
+    deleteProperty: (id: string) =>
+      invoke<{ id: string }, { deleted: boolean }>(IpcChannels.REGISTERS_PROPERTY_DELETE, { id }),
+    listSinkingFund: (filter?: { memberId?: string; dateFrom?: string; dateTo?: string }) =>
+      invoke(IpcChannels.REGISTERS_SINKING_FUND_LIST, filter ?? {}),
+    listIForm: (filter?: string) =>
+      invoke<{ filter?: string }, IFormRegisterDto[]>(IpcChannels.REGISTERS_IFORM_LIST, { filter }),
+    getIForm: (id: string) =>
+      invoke<{ id: string }, IFormRegisterDto>(IpcChannels.REGISTERS_IFORM_GET, { id }),
+    saveIForm: (payload: IFormRegisterDto) => invoke(IpcChannels.REGISTERS_IFORM_SAVE, payload),
+    deleteIForm: (id: string) =>
+      invoke<{ id: string }, { deleted: boolean }>(IpcChannels.REGISTERS_IFORM_DELETE, { id }),
+    saveIFormShare: (payload: IFormShareEntryDto) =>
+      invoke(IpcChannels.REGISTERS_IFORM_SAVE_SHARE, payload),
+    deleteIFormShare: (id: string) =>
+      invoke<{ id: string }, { deleted: boolean }>(IpcChannels.REGISTERS_IFORM_DELETE_SHARE, { id }),
+    saveIFormTransfer: (payload: IFormShareTransferDto) =>
+      invoke(IpcChannels.REGISTERS_IFORM_SAVE_TRANSFER, payload),
+    deleteIFormTransfer: (id: string) =>
+      invoke<{ id: string }, { deleted: boolean }>(IpcChannels.REGISTERS_IFORM_DELETE_TRANSFER, {
+        id,
+      }),
+  },
+  tds: {
+    list: (filter?: { partyAccountId?: string; search?: string; unlinkedChallanOnly?: boolean }) =>
+      invoke(IpcChannels.TDS_LIST, filter ?? {}),
+    get: (id: string) => invoke<{ id: string }, TdsRecordDto>(IpcChannels.TDS_GET, { id }),
+    update: (payload: TdsRecordDto) => invoke(IpcChannels.TDS_UPDATE, payload),
+    listChallans: () => invoke<Record<string, never>, TdsChallanDto[]>(IpcChannels.TDS_LIST_CHALLANS, {}),
+    saveChallan: (payload: TdsChallanDto) => invoke(IpcChannels.TDS_SAVE_CHALLAN, payload),
+    generateForm16A: (payload: { partyAccountId: string; financialYearId?: string }) =>
+      invoke(IpcChannels.TDS_GENERATE_FORM16A, payload),
   },
 });
 

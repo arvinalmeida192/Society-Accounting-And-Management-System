@@ -37,6 +37,7 @@ export {
 } from './society-config-service.js';
 export { seedSocietyConfiguration, seedReportTemplates } from './report-template-seed.js';
 export { ensureSocietyConfiguration } from './ensure-society-config.js';
+export { ensurePermissions } from './ensure-permissions.js';
 export { finalizeSocietyBootstrap } from './startup-service.js';
 export { AuditService, noopAuditService, type AuditLogInput, type AuditLogWriter } from './audit-service.js';
 export { NumberSeriesService, numberSeriesService } from './number-series-service.js';
@@ -73,7 +74,39 @@ export {
   allocateSupplementarySettlement,
   getOpenBillsForMember,
 } from './settlement-service.js';
-export { onReceiptPosted } from './statutory-register-service.js';
+export {
+  onReceiptPosted,
+  syncIFormOnMemberChange,
+  syncIFormOnDisposal,
+  listFdRegister,
+  getFdRegister,
+  saveFdRegister,
+  deleteFdRegister,
+  listUpcomingFdMaturities,
+  listPropertyRegister,
+  getPropertyRegisterEntry,
+  savePropertyRegisterEntry,
+  deletePropertyRegisterEntry,
+  listSinkingFundEntries,
+  listIFormRegisters,
+  getIFormRegister,
+  saveIFormRegister,
+  deleteIFormRegister,
+  saveIFormShareEntry,
+  deleteIFormShareEntry,
+  saveIFormShareTransfer,
+  deleteIFormShareTransfer,
+} from './statutory-register-service.js';
+export {
+  createTdsFromPaymentVoucher,
+  getTdsRecord,
+  isTdsPayableAccount,
+  listTdsChallans,
+  listTdsRecords,
+  saveTdsChallan,
+  updateTdsRecord,
+} from './tds-service.js';
+export { generateForm16A } from './form16a-service.js';
 export {
   validateVoucherBalance,
   validateManualVoucherNo,

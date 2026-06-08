@@ -8,7 +8,7 @@ Offline-first Electron desktop application for co-operative housing society acco
 - `SDD.md` — Software Design Document
 - `Development_Plan.md` — Phased implementation plan
 
-## Current status: Phase 13 complete
+## Current status: Phase 15 complete
 
 | Phase | Scope |
 | ----- | ----- |
@@ -25,6 +25,7 @@ Offline-first Electron desktop application for co-operative housing society acco
 | 11 | Vouchers: Receipt/Payment/Contra posting, FIFO settlement, cheque/MICR, general bill reference |
 | 12 | Adjustments (JV/DN/CN), petty cash, cheque print preview, cheque cancellation with reversal |
 | 13 | Bank reconciliation: clearing entry, bulk clearing dates, reconciliation statement, voucher drill-down |
+| 14 | Statutory registers: FD, Property, Sinking Fund (auto from receipts), I-Form with share sub-tables |
 
 ## Setup
 
@@ -48,6 +49,7 @@ npm run dev
 8. Use **Explorer → Masters** for banks, narrations, address book, cheque reasons, and contractors.
 9. Use **Explorer → Billing** for tariffs, regular bill entry, bulk bill generation, and supplementary bills.
 10. Use **Explorer → Transactions** for vouchers, petty cash, adjustments, bank reconciliation, and cheque printing/cancellation.
+11. Use **Explorer → Statutory** for FD register, property register, sinking fund (read-only), and I-Form membership register.
 
 Each society/financial year is stored in its own `.sqlite` file.
 

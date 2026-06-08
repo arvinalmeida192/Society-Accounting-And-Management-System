@@ -5,6 +5,7 @@ export function useFormState<T>(initialValue: T): {
   saved: T;
   dirty: boolean;
   setValue: React.Dispatch<React.SetStateAction<T>>;
+  patch: (partial: Partial<T>) => void;
   reset: (next?: T) => void;
   commit: (next?: T) => void;
 } {
@@ -29,11 +30,16 @@ export function useFormState<T>(initialValue: T): {
     [value],
   );
 
+  const patch = useCallback((partial: Partial<T>) => {
+    setValue((current) => ({ ...current, ...partial }));
+  }, []);
+
   return {
     value,
     saved,
     dirty: JSON.stringify(value) !== JSON.stringify(saved),
     setValue,
+    patch,
     reset,
     commit,
   };

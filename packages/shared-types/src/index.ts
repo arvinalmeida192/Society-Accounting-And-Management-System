@@ -187,6 +187,30 @@ export const IpcChannels = {
   BANKREC_LIST_ITEMS: 'bankrec:listItems',
   BANKREC_BULK_SET_CLEARING_DATE: 'bankrec:bulkSetClearingDate',
   BANKREC_GET_STATEMENT: 'bankrec:getStatement',
+  REGISTERS_FD_LIST: 'registers:fd:list',
+  REGISTERS_FD_GET: 'registers:fd:get',
+  REGISTERS_FD_SAVE: 'registers:fd:save',
+  REGISTERS_FD_DELETE: 'registers:fd:delete',
+  REGISTERS_FD_UPCOMING_MATURITIES: 'registers:fd:upcomingMaturities',
+  REGISTERS_PROPERTY_LIST: 'registers:property:list',
+  REGISTERS_PROPERTY_GET: 'registers:property:get',
+  REGISTERS_PROPERTY_SAVE: 'registers:property:save',
+  REGISTERS_PROPERTY_DELETE: 'registers:property:delete',
+  REGISTERS_SINKING_FUND_LIST: 'registers:sinkingFund:list',
+  REGISTERS_IFORM_LIST: 'registers:iform:list',
+  REGISTERS_IFORM_GET: 'registers:iform:get',
+  REGISTERS_IFORM_SAVE: 'registers:iform:save',
+  REGISTERS_IFORM_DELETE: 'registers:iform:delete',
+  REGISTERS_IFORM_SAVE_SHARE: 'registers:iform:saveShare',
+  REGISTERS_IFORM_DELETE_SHARE: 'registers:iform:deleteShare',
+  REGISTERS_IFORM_SAVE_TRANSFER: 'registers:iform:saveTransfer',
+  REGISTERS_IFORM_DELETE_TRANSFER: 'registers:iform:deleteTransfer',
+  TDS_LIST: 'tds:list',
+  TDS_GET: 'tds:get',
+  TDS_UPDATE: 'tds:update',
+  TDS_LIST_CHALLANS: 'tds:listChallans',
+  TDS_SAVE_CHALLAN: 'tds:saveChallan',
+  TDS_GENERATE_FORM16A: 'tds:generateForm16A',
 } as const;
 
 export type IpcChannel = (typeof IpcChannels)[keyof typeof IpcChannels] | string;
@@ -1818,4 +1842,200 @@ export interface BankReconciliationStatementDto {
   addUnclearedDeposits: number;
   lessUnclearedWithdrawals: number;
   closingBalancePerPassBook: number;
+}
+
+export enum FdStatus {
+  ACTIVE = 'ACTIVE',
+  MATURED = 'MATURED',
+}
+
+export interface FdRegisterDto {
+  id: string;
+  financialYearId: string;
+  fdDate: string;
+  fdrNo: string;
+  bankName: string;
+  amount: number;
+  fdType: string | null;
+  durationMonths: number;
+  interestRate: number;
+  effectiveDate: string;
+  maturityDate: string;
+  remarks: string | null;
+  status: FdStatus;
+  createdAt: string;
+  createdBy: string;
+  updatedAt: string;
+  updatedBy: string;
+}
+
+export interface UpcomingFdMaturityDto {
+  id: string;
+  fdrNo: string;
+  bankName: string;
+  amount: number;
+  maturityDate: string;
+  daysRemaining: number;
+}
+
+export interface PropertyRegisterEntryDto {
+  id: string;
+  financialYearId: string;
+  srNo: number;
+  coPartnerMemberId: string | null;
+  coPartnerMemberName: string | null;
+  possessionDate: string | null;
+  tenementNo: string | null;
+  flatNo: string;
+  floorNo: string | null;
+  description: string | null;
+  area: number | null;
+  cost: number | null;
+  landValue: number | null;
+  constructionValue: number | null;
+  annualGroundRent: number | null;
+  cessationDate: string | null;
+  remark: string | null;
+  createdAt: string;
+  createdBy: string;
+  updatedAt: string;
+  updatedBy: string;
+}
+
+export interface SinkingFundEntryDto {
+  id: string;
+  financialYearId: string;
+  srNo: number;
+  memberId: string;
+  memberName: string | null;
+  flatNo: string;
+  flatValueExclLand: number;
+  requiredContribution: number;
+  receiptDate: string;
+  amountContributed: number;
+  remark: string | null;
+  sourceVoucherId: string;
+  sourceVoucherNo: string | null;
+  createdAt: string;
+  createdBy: string;
+  updatedAt: string;
+  updatedBy: string;
+}
+
+export interface IFormShareEntryDto {
+  id: string;
+  iFormRegisterId: string;
+  onDate: string | null;
+  cashBookFolio: string | null;
+  applicationDetails: string | null;
+  amountCall1: number | null;
+  amountCall2: number | null;
+  totalAmount: number | null;
+  numberOfShares: number | null;
+  certificateSerialNo: string | null;
+  createdAt: string;
+  createdBy: string;
+  updatedAt: string;
+  updatedBy: string;
+}
+
+export interface IFormShareTransferDto {
+  id: string;
+  iFormRegisterId: string;
+  onDate: string | null;
+  cashBookFolio: string | null;
+  unitNo: string | null;
+  registerNo: string | null;
+  serialNo: string | null;
+  certificatesCount: number | null;
+  sharesTransferred: number | null;
+  balanceShares: number | null;
+  balanceCertificateSerial: string | null;
+  balanceAmount: number | null;
+  createdAt: string;
+  createdBy: string;
+  updatedAt: string;
+  updatedBy: string;
+}
+
+export interface IFormRegisterDto {
+  id: string;
+  financialYearId: string;
+  srNo: number;
+  memberId: string;
+  admissionDate: string | null;
+  admissionFeeDate: string | null;
+  fullName: string;
+  unitNo: string;
+  address: string | null;
+  occupation: string | null;
+  ageOnAdmission: number | null;
+  nomineeName: string | null;
+  nominationDate: string | null;
+  cessationDate: string | null;
+  cessationReason: string | null;
+  remarks: string | null;
+  shareEntries: IFormShareEntryDto[];
+  shareTransfers: IFormShareTransferDto[];
+  createdAt: string;
+  createdBy: string;
+  updatedAt: string;
+  updatedBy: string;
+}
+
+export interface TdsChallanDto {
+  id: string;
+  financialYearId: string;
+  bsrCode: string | null;
+  bankName: string | null;
+  branchName: string | null;
+  challanNo: string | null;
+  challanDate: string | null;
+  chequeNo: string | null;
+  chequeDate: string | null;
+  tdsRecordIds?: string[];
+  createdAt: string;
+  createdBy: string;
+  updatedAt: string;
+  updatedBy: string;
+}
+
+export interface TdsRecordDto {
+  id: string;
+  financialYearId: string;
+  voucherId: string;
+  voucherLineId: string;
+  systemVoucherNo: string | null;
+  paymentDate: string;
+  natureOfPayment: string | null;
+  partyAccountId: string | null;
+  partyName: string;
+  billNo: string | null;
+  billDate: string | null;
+  billAmount: number;
+  taxableAmount: number;
+  tdsRate: number;
+  tdsAmount: number;
+  surchargeRate: number;
+  surchargeAmount: number;
+  educationCessRate: number;
+  educationCessAmount: number;
+  totalRate: number;
+  totalAmount: number;
+  challanId: string | null;
+  challan: TdsChallanDto | null;
+  createdAt: string;
+  createdBy: string;
+  updatedAt: string;
+  updatedBy: string;
+}
+
+export interface Form16AResultDto {
+  blocked: boolean;
+  reason?: string;
+  htmlPath?: string;
+  partyName?: string;
+  financialYearLabel?: string;
+  totalDeductions?: number;
+  groupCount?: number;
 }

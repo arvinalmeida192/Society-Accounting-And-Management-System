@@ -35,6 +35,7 @@ import {
   getOpenBillsForMember,
 } from './settlement-service.js';
 import { onReceiptPosted } from './statutory-register-service.js';
+import { createTdsFromPaymentVoucher } from './tds-service.js';
 
 function toNumber(value: { toString(): string } | number | null | undefined): number {
   if (value == null) return 0;
@@ -568,6 +569,7 @@ export async function postVoucher(
     });
 
     await onReceiptPosted(tx as PrismaClient, posted, actorId);
+    await createTdsFromPaymentVoucher(tx as PrismaClient, posted, actorId);
 
     return posted;
   });

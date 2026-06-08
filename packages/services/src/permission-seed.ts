@@ -13,6 +13,8 @@ const RESOURCES = {
   BILLING: 'billing',
   ADMIN_YEAR_END: 'admin.yearEnd',
   LETTERS: 'letters',
+  STATUTORY: 'statutory',
+  TDS: 'tds',
   AUTH: 'auth',
 } as const;
 
@@ -89,6 +91,22 @@ const MATRIX: MatrixEntry[] = [
     operator: [],
     committee: [],
     auditor: [PermissionAction.READ],
+  },
+  {
+    resource: RESOURCES.STATUTORY,
+    admin: [PermissionAction.CREATE, PermissionAction.READ, PermissionAction.UPDATE, PermissionAction.DELETE],
+    accountant: [PermissionAction.CREATE, PermissionAction.READ, PermissionAction.UPDATE, PermissionAction.DELETE],
+    operator: [PermissionAction.READ],
+    committee: [PermissionAction.READ],
+    auditor: [PermissionAction.READ],
+  },
+  {
+    resource: RESOURCES.TDS,
+    admin: [PermissionAction.CREATE, PermissionAction.READ, PermissionAction.UPDATE, PermissionAction.DELETE, PermissionAction.PRINT],
+    accountant: [PermissionAction.CREATE, PermissionAction.READ, PermissionAction.UPDATE, PermissionAction.DELETE, PermissionAction.PRINT],
+    operator: [PermissionAction.READ],
+    committee: [],
+    auditor: [PermissionAction.READ, PermissionAction.PRINT],
   },
   {
     resource: RESOURCES.LETTERS,

@@ -1,4 +1,4 @@
-// SAMS Database Schema — Phases 1–11
+// SAMS Database Schema — Phases 1–15
 
 generator client {
   provider = "prisma-client-js"
@@ -138,6 +138,11 @@ enum BillNumberingMode {
 enum LandType {
   FREEHOLD
   LEASEHOLD
+}
+
+enum FdStatus {
+  ACTIVE
+  MATURED
 }
 
 enum ReportType {
@@ -338,6 +343,12 @@ model FinancialYear {
   tariffBillRegisterMappings TariffBillRegisterMapping[]
   bills                      Bill[]
   voucherNumberSeries        VoucherNumberSeries[]
+  fixedDeposits              FixedDepositRegister[]
+  propertyRegisterEntries    PropertyRegisterEntry[]
+  sinkingFundEntries         SinkingFundRegisterEntry[]
+  iFormRegisters             IFormRegister[]
+  tdsRecords                 TdsRecord[]
+  tdsChallans                TdsChallan[]
   createdAt          DateTime        @default(now())
   createdBy          String
   updatedAt          DateTime        @updatedAt
@@ -551,6 +562,7 @@ model AccountMaster {
   memberSubsidiaryId   String?         @unique
   memberSubsidiary     Member?            @relation("MemberSubsidiaryLedger", fields: [memberSubsidiaryId], references: [id])
   addressBookEntry              AddressBookEntry?
+  tdsPartyRecords               TdsRecord[]       @relation("TdsPartyAccount")
   voucherLines                  VoucherLine[]
   parkingSpaces                 ParkingSpace[]
   tariffLines                   TariffLine[]
@@ -584,6 +596,8 @@ model Voucher {
   billSettlements       BillSettlement[]
   generalBillSettlements GeneralBillSettlement[]
   memberOpeningBalances MemberOpeningBalance[]
+  sinkingFundEntries    SinkingFundRegisterEntry[]
+  tdsRecords            TdsRecord[]
   createdAt             DateTime               @default(now())
   createdBy             String
   updatedAt             DateTime               @updatedAt
@@ -608,6 +622,7 @@ model VoucherLine {
   particulars     String?
   bankAccountId   String?
   chequeDetail    ChequeDetail?
+  tdsRecord       TdsRecord?
   createdAt       DateTime      @default(now())
   createdBy       String
   updatedAt       DateTime      @updatedAt
@@ -846,6 +861,9 @@ model Member {
   parkingAssignments           MemberParkingAssignment[]
   voucherLines                 VoucherLine[]
   bills                        Bill[]
+  propertyRegisterEntries      PropertyRegisterEntry[]
+  sinkingFundEntries           SinkingFundRegisterEntry[]
+  iFormRegister                IFormRegister?
   createdAt                    DateTime  @default(now())
   createdBy                    String
   updatedAt                    DateTime  @updatedAt
@@ -1359,4 +1377,219 @@ model GeneralBillSettlement {
   @@index([voucherId])
   @@index([supplementaryBillId])
   @@map("general_bill_settlements")
+}
+
+model FixedDepositRegister {
+  id              String        @id @default(cuid())
+  financialYearId String
+  financialYear   FinancialYear @relation(fields: [financialYearId], references: [id])
+  fdDate          DateTime
+  fdrNo           String
+  bankName        String
+  amount          Decimal
+  fdType          String?
+  durationMonths  Int
+  interestRate    Decimal
+  effectiveDate   DateTime
+  maturityDate    DateTime
+  remarks         String?
+  status          FdStatus      @default(ACTIVE)
+  createdAt       DateTime      @default(now())
+  createdBy       String
+  updatedAt       DateTime      @updatedAt
+  updatedBy       String
+
+  @@index([financialYearId])
+  @@index([maturityDate])
+  @@map("fixed_deposit_register")
+}
+
+model PropertyRegisterEntry {
+  id                  String        @id @default(cuid())
+  financialYearId     String
+  financialYear       FinancialYear @relation(fields: [financialYearId], references: [id])
+  srNo                Int
+  coPartnerMemberId   String?
+  coPartnerMember     Member?       @relation(fields: [coPartnerMemberId], references: [id])
+  coPartnerMemberName String?
+  possessionDate      DateTime?
+  tenementNo          String?
+  flatNo              String
+  floorNo             String?
+  description         String?
+  area                Decimal?
+  cost                Decimal?
+  landValue           Decimal?
+  constructionValue   Decimal?
+  annualGroundRent    Decimal?
+  cessationDate       DateTime?
+  remark              String?
+  createdAt           DateTime      @default(now())
+  createdBy           String
+  updatedAt           DateTime      @updatedAt
+  updatedBy           String
+
+  @@unique([financialYearId, srNo])
+  @@index([financialYearId])
+  @@map("property_register_entries")
+}
+
+model SinkingFundRegisterEntry {
+  id                   String        @id @default(cuid())
+  financialYearId      String
+  financialYear        FinancialYear @relation(fields: [financialYearId], references: [id])
+  srNo                 Int
+  memberId             String
+  member               Member        @relation(fields: [memberId], references: [id])
+  flatNo               String
+  flatValueExclLand    Decimal
+  requiredContribution Decimal
+  receiptDate          DateTime
+  amountContributed    Decimal
+  remark               String?
+  sourceVoucherId      String
+  sourceVoucher        Voucher       @relation(fields: [sourceVoucherId], references: [id])
+  createdAt            DateTime      @default(now())
+  createdBy            String
+  updatedAt            DateTime      @updatedAt
+  updatedBy            String
+
+  @@unique([financialYearId, srNo])
+  @@index([financialYearId])
+  @@index([memberId])
+  @@index([sourceVoucherId])
+  @@map("sinking_fund_register_entries")
+}
+
+model IFormRegister {
+  id               String        @id @default(cuid())
+  financialYearId  String
+  financialYear    FinancialYear @relation(fields: [financialYearId], references: [id])
+  srNo             Int
+  memberId         String        @unique
+  member           Member        @relation(fields: [memberId], references: [id])
+  admissionDate    DateTime?
+  admissionFeeDate DateTime?
+  fullName         String
+  unitNo           String
+  address          String?
+  occupation       String?
+  ageOnAdmission   Int?
+  nomineeName      String?
+  nominationDate   DateTime?
+  cessationDate    DateTime?
+  cessationReason  String?
+  remarks          String?
+  shareEntries     IFormShareEntry[]
+  shareTransfers   IFormShareTransfer[]
+  createdAt        DateTime      @default(now())
+  createdBy        String
+  updatedAt        DateTime      @updatedAt
+  updatedBy        String
+
+  @@unique([financialYearId, srNo])
+  @@index([financialYearId])
+  @@map("iform_register")
+}
+
+model IFormShareEntry {
+  id                  String        @id @default(cuid())
+  iFormRegisterId     String
+  iFormRegister       IFormRegister @relation(fields: [iFormRegisterId], references: [id], onDelete: Cascade)
+  onDate              DateTime?
+  cashBookFolio       String?
+  applicationDetails  String?
+  amountCall1         Decimal?
+  amountCall2         Decimal?
+  totalAmount         Decimal?
+  numberOfShares      Int?
+  certificateSerialNo String?
+  createdAt           DateTime      @default(now())
+  createdBy           String
+  updatedAt           DateTime      @updatedAt
+  updatedBy           String
+
+  @@map("iform_share_entries")
+}
+
+model IFormShareTransfer {
+  id                        String        @id @default(cuid())
+  iFormRegisterId           String
+  iFormRegister             IFormRegister @relation(fields: [iFormRegisterId], references: [id], onDelete: Cascade)
+  onDate                    DateTime?
+  cashBookFolio             String?
+  unitNo                    String?
+  registerNo                String?
+  serialNo                  String?
+  certificatesCount         Int?
+  sharesTransferred         Int?
+  balanceShares             Int?
+  balanceCertificateSerial  String?
+  balanceAmount             Decimal?
+  createdAt                 DateTime      @default(now())
+  createdBy                 String
+  updatedAt                 DateTime      @updatedAt
+  updatedBy                 String
+
+  @@map("iform_share_transfers")
+}
+
+model TdsChallan {
+  id              String        @id @default(cuid())
+  financialYearId String
+  financialYear   FinancialYear @relation(fields: [financialYearId], references: [id])
+  bsrCode         String?
+  bankName        String?
+  branchName      String?
+  challanNo       String?
+  challanDate     DateTime?
+  chequeNo        String?
+  chequeDate      DateTime?
+  tdsRecords      TdsRecord[]
+  createdAt       DateTime      @default(now())
+  createdBy       String
+  updatedAt       DateTime      @updatedAt
+  updatedBy       String
+
+  @@index([financialYearId])
+  @@map("tds_challans")
+}
+
+model TdsRecord {
+  id                  String         @id @default(cuid())
+  financialYearId     String
+  financialYear       FinancialYear  @relation(fields: [financialYearId], references: [id])
+  voucherId           String
+  voucher             Voucher        @relation(fields: [voucherId], references: [id])
+  voucherLineId       String         @unique
+  voucherLine         VoucherLine    @relation(fields: [voucherLineId], references: [id])
+  paymentDate         DateTime
+  natureOfPayment     String?
+  partyAccountId      String?
+  partyAccount        AccountMaster? @relation("TdsPartyAccount", fields: [partyAccountId], references: [id])
+  partyName           String
+  billNo              String?
+  billDate            DateTime?
+  billAmount          Decimal        @default(0)
+  taxableAmount       Decimal        @default(0)
+  tdsRate             Decimal        @default(0)
+  tdsAmount           Decimal        @default(0)
+  surchargeRate       Decimal        @default(0)
+  surchargeAmount     Decimal        @default(0)
+  educationCessRate   Decimal        @default(0)
+  educationCessAmount Decimal        @default(0)
+  totalRate           Decimal        @default(0)
+  totalAmount         Decimal        @default(0)
+  challanId           String?
+  challan             TdsChallan?    @relation(fields: [challanId], references: [id])
+  createdAt           DateTime       @default(now())
+  createdBy           String
+  updatedAt           DateTime       @updatedAt
+  updatedBy           String
+
+  @@index([financialYearId])
+  @@index([voucherId])
+  @@index([partyAccountId])
+  @@index([challanId])
+  @@map("tds_records")
 }

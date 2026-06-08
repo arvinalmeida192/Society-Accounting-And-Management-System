@@ -17,6 +17,7 @@ import type {
   UnitVacancyResult,
 } from '@sams/shared-types';
 import { createMemberSubsidiaryLedger } from './chart-of-accounts-service.js';
+import { syncIFormOnDisposal, syncIFormOnMemberChange } from './statutory-register-service.js';
 
 function decimalToNumber(value: Prisma.Decimal | number | null | undefined): number | null {
   if (value == null) return null;
@@ -407,6 +408,7 @@ export async function saveMemberIdentification(
     });
   }
 
+  await syncIFormOnMemberChange(client, record.id, actorId);
   return mapMember(record);
 }
 
@@ -442,6 +444,7 @@ export async function saveMemberPersonal(
     include: memberInclude,
   });
 
+  await syncIFormOnMemberChange(client, record.id, actorId);
   return mapMember(record);
 }
 
@@ -464,6 +467,7 @@ export async function saveMemberAddress(
     include: memberInclude,
   });
 
+  await syncIFormOnMemberChange(client, record.id, actorId);
   return mapMember(record);
 }
 
@@ -523,6 +527,7 @@ export async function saveMemberNominees(
     }
   });
 
+  await syncIFormOnMemberChange(client, memberId, actorId);
   const member = await getMember(client, memberId);
   return member.nominees;
 }
@@ -649,6 +654,7 @@ export async function disposeMember(
     return updated;
   });
 
+  await syncIFormOnDisposal(client, id, disposeDate, reason, actorId);
   return mapMember(record);
 }
 

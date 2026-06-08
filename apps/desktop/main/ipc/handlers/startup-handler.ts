@@ -14,6 +14,7 @@ import {
 import {
   assertValidSamsDatabase,
   createSocietyInDatabase,
+  ensurePermissions,
   ensureSocietyConfiguration,
   finalizeSocietyBootstrap,
   validateCreateSocietyWizardDto,
@@ -44,6 +45,7 @@ export function createStartupHandlers(appConfig: AppConfigStore): {
   const bindDatabaseSession = async (dbPath: string): Promise<OpenDatabaseResult> => {
     await connectDatabase(dbPath);
     const client = getActivePrisma();
+    await ensurePermissions(client);
     await ensureSocietyConfiguration(client);
     const info = await assertValidSamsDatabase(client);
     const sessionToken = randomUUID();

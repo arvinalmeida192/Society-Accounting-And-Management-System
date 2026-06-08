@@ -74,6 +74,24 @@ const explorerNodes = [
     ],
   },
   {
+    id: 'tds',
+    label: 'TDS',
+    children: [
+      { id: 'tds-rec', label: 'TDS Records', route: '/app/tds/records' },
+      { id: 'tds-f16', label: 'Form 16A', route: '/app/tds/form16a' },
+    ],
+  },
+  {
+    id: 'statutory',
+    label: 'Statutory',
+    children: [
+      { id: 'reg-fd', label: 'FD Register', route: '/app/statutory/fd' },
+      { id: 'reg-property', label: 'Property Register', route: '/app/statutory/property' },
+      { id: 'reg-sink', label: 'Sinking Fund', route: '/app/statutory/sinking-fund' },
+      { id: 'reg-iform', label: 'I-Form Register', route: '/app/statutory/iform' },
+    ],
+  },
+  {
     id: 'reports',
     label: 'Reports',
     children: [{ id: 'rpt', label: 'Reports Hub', route: '/app/reports' }],

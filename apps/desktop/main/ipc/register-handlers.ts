@@ -73,6 +73,19 @@ import {
   bankRecReadOptions,
   bankRecWriteOptions,
 } from './handlers/bankrec-handler.js';
+import {
+  registersHandlers,
+  registersCreateOptions,
+  registersDeleteOptions,
+  registersReadOptions,
+  registersWriteOptions,
+} from './handlers/registers-handler.js';
+import {
+  tdsHandlers,
+  tdsPrintOptions,
+  tdsReadOptions,
+  tdsWriteOptions,
+} from './handlers/tds-handler.js';
 import { sessionManager } from '../session/session-manager.js';
 
 const publicOptions = {
@@ -589,6 +602,56 @@ export function registerIpcHandlers(appConfig: AppConfigStore): void {
   ];
 
   for (const entry of bankRecChannels) {
+    ipcMain.handle(entry.channel, async (event, request) =>
+      withIpcPipeline(request, sessionManager.get(), event, {
+        ...entry.options,
+        handler: entry.handler,
+      }),
+    );
+  }
+
+  const registersOptions = { ...registersReadOptions, requireSession: true };
+  const registersChannels = [
+    { channel: IpcChannels.REGISTERS_FD_LIST, options: registersOptions, handler: registersHandlers.listFd },
+    { channel: IpcChannels.REGISTERS_FD_GET, options: registersOptions, handler: registersHandlers.getFd },
+    { channel: IpcChannels.REGISTERS_FD_SAVE, options: { ...registersCreateOptions, requireSession: true }, handler: registersHandlers.saveFd },
+    { channel: IpcChannels.REGISTERS_FD_DELETE, options: { ...registersDeleteOptions, requireSession: true }, handler: registersHandlers.deleteFd },
+    { channel: IpcChannels.REGISTERS_FD_UPCOMING_MATURITIES, options: registersOptions, handler: registersHandlers.upcomingFdMaturities },
+    { channel: IpcChannels.REGISTERS_PROPERTY_LIST, options: registersOptions, handler: registersHandlers.listProperty },
+    { channel: IpcChannels.REGISTERS_PROPERTY_GET, options: registersOptions, handler: registersHandlers.getProperty },
+    { channel: IpcChannels.REGISTERS_PROPERTY_SAVE, options: { ...registersCreateOptions, requireSession: true }, handler: registersHandlers.saveProperty },
+    { channel: IpcChannels.REGISTERS_PROPERTY_DELETE, options: { ...registersDeleteOptions, requireSession: true }, handler: registersHandlers.deleteProperty },
+    { channel: IpcChannels.REGISTERS_SINKING_FUND_LIST, options: registersOptions, handler: registersHandlers.listSinkingFund },
+    { channel: IpcChannels.REGISTERS_IFORM_LIST, options: registersOptions, handler: registersHandlers.listIForm },
+    { channel: IpcChannels.REGISTERS_IFORM_GET, options: registersOptions, handler: registersHandlers.getIForm },
+    { channel: IpcChannels.REGISTERS_IFORM_SAVE, options: { ...registersCreateOptions, requireSession: true }, handler: registersHandlers.saveIForm },
+    { channel: IpcChannels.REGISTERS_IFORM_DELETE, options: { ...registersDeleteOptions, requireSession: true }, handler: registersHandlers.deleteIForm },
+    { channel: IpcChannels.REGISTERS_IFORM_SAVE_SHARE, options: { ...registersCreateOptions, requireSession: true }, handler: registersHandlers.saveIFormShare },
+    { channel: IpcChannels.REGISTERS_IFORM_DELETE_SHARE, options: { ...registersDeleteOptions, requireSession: true }, handler: registersHandlers.deleteIFormShare },
+    { channel: IpcChannels.REGISTERS_IFORM_SAVE_TRANSFER, options: { ...registersCreateOptions, requireSession: true }, handler: registersHandlers.saveIFormTransfer },
+    { channel: IpcChannels.REGISTERS_IFORM_DELETE_TRANSFER, options: { ...registersDeleteOptions, requireSession: true }, handler: registersHandlers.deleteIFormTransfer },
+  ];
+
+  for (const entry of registersChannels) {
+    ipcMain.handle(entry.channel, async (event, request) =>
+      withIpcPipeline(request, sessionManager.get(), event, {
+        ...entry.options,
+        handler: entry.handler,
+      }),
+    );
+  }
+
+  const tdsOptions = { ...tdsReadOptions, requireSession: true };
+  const tdsChannels = [
+    { channel: IpcChannels.TDS_LIST, options: tdsOptions, handler: tdsHandlers.list },
+    { channel: IpcChannels.TDS_GET, options: tdsOptions, handler: tdsHandlers.get },
+    { channel: IpcChannels.TDS_UPDATE, options: { ...tdsWriteOptions, requireSession: true }, handler: tdsHandlers.update },
+    { channel: IpcChannels.TDS_LIST_CHALLANS, options: tdsOptions, handler: tdsHandlers.listChallans },
+    { channel: IpcChannels.TDS_SAVE_CHALLAN, options: { ...tdsWriteOptions, requireSession: true }, handler: tdsHandlers.saveChallan },
+    { channel: IpcChannels.TDS_GENERATE_FORM16A, options: { ...tdsPrintOptions, requireSession: true }, handler: tdsHandlers.generateForm16A },
+  ];
+
+  for (const entry of tdsChannels) {
     ipcMain.handle(entry.channel, async (event, request) =>
       withIpcPipeline(request, sessionManager.get(), event, {
         ...entry.options,

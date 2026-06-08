@@ -98,15 +98,15 @@ export function TariffDefinitionScreen(): React.ReactElement {
     if (level === TariffScopeLevel.BUILDING) {
       const response = await window.sams.property.listBuildings();
       if (response.success && response.data) {
-        setBuildings(response.data);
-        setScopeRefId(response.data[0]?.id ?? '');
+        setBuildings(response.data.items);
+        setScopeRefId(response.data.items[0]?.id ?? '');
       }
       return;
     }
     if (level === TariffScopeLevel.WING) {
       const bld = await window.sams.property.listBuildings();
-      if (!bld.success || !bld.data?.[0]) return;
-      const response = await window.sams.property.listWings(bld.data[0].id);
+      if (!bld.success || !bld.data?.items?.[0]) return;
+      const response = await window.sams.property.listWings(bld.data.items[0].id);
       if (response.success && response.data) {
         setWings(response.data);
         setScopeRefId(response.data[0]?.id ?? '');

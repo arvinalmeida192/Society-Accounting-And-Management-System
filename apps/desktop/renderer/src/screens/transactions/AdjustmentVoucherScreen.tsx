@@ -61,8 +61,8 @@ export function AdjustmentVoucherScreen(): React.ReactElement {
     void (async () => {
       const response = await window.sams.member.list();
       if (response.success && response.data) {
-        setMembers(response.data);
-        if (!memberId && response.data[0]) setMemberId(response.data[0].id);
+        setMembers(response.data.items);
+        if (!memberId && response.data.items[0]) setMemberId(response.data.items[0].id);
       }
     })();
   }, [memberId]);

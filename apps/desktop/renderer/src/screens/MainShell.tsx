@@ -1,5 +1,6 @@
 import { Navigate, Route, Routes, useNavigate } from 'react-router-dom';
 import type { SessionDto } from '@sams/shared-types';
+import { ErrorBoundary } from '../components/ErrorBoundary';
 import { ExplorerTree } from '../components/ExplorerTree';
 import { useTabStore } from '../store/tabStore';
 import { useSession } from '../hooks/SessionContext';
@@ -56,6 +57,12 @@ import { VoucherEntryScreen } from './transactions/VoucherEntryScreen';
 import { PettyCashScreen } from './transactions/PettyCashScreen';
 import { AdjustmentVoucherScreen } from './transactions/AdjustmentVoucherScreen';
 import { BankReconciliationScreen } from './transactions/BankReconciliationScreen';
+import { FdRegisterScreen } from './statutory/FdRegisterScreen';
+import { PropertyRegisterScreen } from './statutory/PropertyRegisterScreen';
+import { SinkingFundRegisterScreen } from './statutory/SinkingFundRegisterScreen';
+import { IFormRegisterScreen } from './statutory/IFormRegisterScreen';
+import { TdsRecordScreen } from './tds/TdsRecordScreen';
+import { Form16AScreen } from './tds/Form16AScreen';
 
 function PlaceholderPane({ title }: { title: string }): React.ReactElement {
   return (
@@ -136,6 +143,7 @@ export function MainShell({ session }: MainShellProps): React.ReactElement {
         )}
 
         <main className="main-content">
+          <ErrorBoundary>
           <Routes>
             <Route path="home" element={<HomePane session={session} />} />
             <Route path="setup/identity" element={<SocietyIdentityScreen />} />
@@ -167,9 +175,16 @@ export function MainShell({ session }: MainShellProps): React.ReactElement {
             <Route path="transactions/petty-cash" element={<PettyCashScreen />} />
             <Route path="transactions/adjustments" element={<AdjustmentVoucherScreen />} />
             <Route path="transactions/bank-reconciliation" element={<BankReconciliationScreen />} />
+            <Route path="statutory/fd" element={<FdRegisterScreen />} />
+            <Route path="statutory/property" element={<PropertyRegisterScreen />} />
+            <Route path="statutory/sinking-fund" element={<SinkingFundRegisterScreen />} />
+            <Route path="statutory/iform" element={<IFormRegisterScreen />} />
+            <Route path="tds/records" element={<TdsRecordScreen />} />
+            <Route path="tds/form16a" element={<Form16AScreen />} />
             <Route path="reports" element={<PlaceholderPane title="Reports" />} />
             <Route path="*" element={<Navigate to="home" replace />} />
           </Routes>
+          </ErrorBoundary>
         </main>
       </div>
     </div>

@@ -65,8 +65,8 @@ export function SupplementaryBillScreen(): React.ReactElement {
     ]);
     if (periodRes.success && periodRes.data) setPeriods(periodRes.data);
     if (memberRes.success && memberRes.data) {
-      setMembers(memberRes.data);
-      if (!memberId && memberRes.data[0]) setMemberId(memberRes.data[0].id);
+      setMembers(memberRes.data.items);
+      if (!memberId && memberRes.data.items[0]) setMemberId(memberRes.data.items[0].id);
     }
     if (tenantRes.success && tenantRes.data) {
       setTenants(tenantRes.data);

@@ -22,7 +22,7 @@ export function BulkRegularBillsScreen(): React.ReactElement {
       window.sams.billing.getNextPeriod(),
     ]);
     if (periodRes.success && periodRes.data) setPeriods(periodRes.data);
-    if (buildingRes.success && buildingRes.data) setBuildings(buildingRes.data);
+    if (buildingRes.success && buildingRes.data) setBuildings(buildingRes.data.items);
     if (nextRes.success && nextRes.data) setPeriodKey(nextRes.data.periodKey);
     else if (periodRes.success && periodRes.data?.[0]) setPeriodKey(periodRes.data[0].periodKey);
   }, []);
