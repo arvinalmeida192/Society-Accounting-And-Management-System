@@ -6,6 +6,7 @@ import type {
   MemberOpeningBalanceSaveDto,
 } from '@sams/shared-types';
 import { Money } from './money.js';
+import { assertWritable } from './assert-writable.js';
 
 function decimalToNumber(value: Prisma.Decimal | number | null | undefined): number {
   if (value == null) return 0;
@@ -85,6 +86,7 @@ export async function saveMemberOpeningBalance(
   financialYearId: string,
   actorId: string,
 ): Promise<MemberOpeningBalanceResult> {
+  await assertWritable(client);
   const principal = dto.principalOB ?? 0;
   const interest = dto.interestOB ?? 0;
   const serviceTax =

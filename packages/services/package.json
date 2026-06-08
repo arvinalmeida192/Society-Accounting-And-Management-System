@@ -16,6 +16,7 @@
     }
   },
   "scripts": {
+    "prepare": "tsc -p tsconfig.json",
     "build": "tsc -p tsconfig.json",
     "test": "vitest run",
     "lint": "eslint src --max-warnings 0 && tsc -p tsconfig.json --noEmit"

@@ -40,7 +40,7 @@ const defaultFinancialYear = (): FinancialYearInput => {
 
 export function NewSocietyWizard(): React.ReactElement {
   const navigate = useNavigate();
-  const { refreshSession } = useSession();
+  const { refreshSession, markDatabaseOpen } = useSession();
   const [step, setStep] = useState(0);
   const [identity, setIdentity] = useState(defaultIdentity);
   const [financialYear, setFinancialYear] = useState(defaultFinancialYear);
@@ -118,6 +118,7 @@ export function NewSocietyWizard(): React.ReactElement {
           return;
         }
         setResultLabel(`${response.data.societyName} (${response.data.fyLabel})`);
+        markDatabaseOpen(response.data.dbPath);
         await refreshSession();
         setStep(5);
       } finally {
@@ -268,7 +269,9 @@ export function NewSocietyWizard(): React.ReactElement {
           <button
             type="button"
             onClick={() => {
-              void refreshSession().then(() => navigate('/login'));
+              void refreshSession().then((updated) => {
+                if (updated?.databasePath) navigate('/login');
+              });
             }}
           >
             Continue to Sign In

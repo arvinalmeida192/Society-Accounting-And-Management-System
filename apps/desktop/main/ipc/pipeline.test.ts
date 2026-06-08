@@ -51,6 +51,36 @@ describe('withIpcPipeline', () => {
     expect(response.error?.code).toBe('PERMISSION_DENIED');
   });
 
+  it('allows startup open-database without authenticated user', async () => {
+    const response = await withIpcPipeline(
+      createIpcRequest({ path: '/tmp/society.sqlite' }),
+      {
+        ...baseSession(),
+        userId: null,
+        username: null,
+        displayName: null,
+        role: null,
+        permissions: [],
+        databasePath: null,
+      },
+      {} as never,
+      {
+        resource: 'startup',
+        action: PermissionAction.READ,
+        requireSession: false,
+        handler: async () => ({
+          sessionToken: 'new-token',
+          societyName: 'Test Society',
+          fyLabel: '2025-26',
+          isReadOnly: false,
+        }),
+      },
+    );
+
+    expect(response.success).toBe(true);
+    expect(response.data).toMatchObject({ sessionToken: 'new-token' });
+  });
+
   it('blocks mutations when year is closed', async () => {
     const response = await withIpcPipeline(
       createIpcRequest({}),

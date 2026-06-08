@@ -1,6 +1,7 @@
 import type { PrismaClient } from '@prisma/client';
 import { ErrorCodes, VoucherType, type PettyCashVoucherDto, type VoucherDetailDto } from '@sams/shared-types';
 import { listVouchers, postVoucher, validateVoucherBalance } from './voucher-service.js';
+import { assertWritable } from './assert-writable.js';
 
 async function assertPettyCashAccounts(
   client: PrismaClient,
@@ -34,6 +35,7 @@ export async function postPettyCashVoucher(
   dto: PettyCashVoucherDto,
   actorId: string,
 ): Promise<VoucherDetailDto> {
+  await assertWritable(client);
   const balance = validateVoucherBalance(dto.lines);
   if (!balance.balanced) {
     throw Object.assign(new Error('Petty cash voucher is not balanced. ΣDr must equal ΣCr.'), {

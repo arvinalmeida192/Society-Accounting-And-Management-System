@@ -7,10 +7,11 @@ interface ErrorBoundaryProps {
 
 interface ErrorBoundaryState {
   error: Error | null;
+  retryKey: number;
 }
 
 export class ErrorBoundary extends Component<ErrorBoundaryProps, ErrorBoundaryState> {
-  state: ErrorBoundaryState = { error: null };
+  state: ErrorBoundaryState = { error: null, retryKey: 0 };
 
   static getDerivedStateFromError(error: Error): ErrorBoundaryState {
     return { error };
@@ -26,13 +27,18 @@ export class ErrorBoundary extends Component<ErrorBoundaryProps, ErrorBoundarySt
         <section className="error-boundary">
           <h2>{this.props.title ?? 'This screen could not be loaded'}</h2>
           <p className="error-text">{this.state.error.message}</p>
-          <button type="button" onClick={() => this.setState({ error: null })}>
+          <button
+            type="button"
+            onClick={() =>
+              this.setState((state) => ({ error: null, retryKey: state.retryKey + 1 }))
+            }
+          >
             Try Again
           </button>
         </section>
       );
     }
 
-    return this.props.children;
+    return <div key={this.state.retryKey}>{this.props.children}</div>;
   }
 }

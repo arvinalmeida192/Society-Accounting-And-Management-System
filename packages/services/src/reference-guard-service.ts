@@ -92,5 +92,8 @@ export async function canDelete(
   _entity: string,
   _id: string,
 ): Promise<ReferenceGuardResult> {
+  void _client;
+  void _entity;
+  void _id;
   return { allowed: false, references: ['Delete not supported for this entity.'] };
 }

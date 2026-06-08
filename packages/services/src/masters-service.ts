@@ -11,6 +11,7 @@ import type {
   PartyType,
   VoucherType,
 } from '@sams/shared-types';
+import { assertWritable } from './assert-writable.js';
 
 function mapBank(record: {
   id: string;
@@ -94,6 +95,7 @@ export async function saveBank(
   dto: Omit<BankMasterDto, keyof import('@sams/shared-types').AuditFieldsDto> & { id?: string },
   actorId: string,
 ): Promise<BankMasterDto> {
+  await assertWritable(client);
   if (!dto.bankName?.trim() || !dto.branchName?.trim()) {
     throw Object.assign(new Error('Bank name and branch are required.'), { code: 'VALIDATION_ERROR' });
   }
@@ -118,6 +120,7 @@ export async function saveBank(
 }
 
 export async function deleteBank(client: PrismaClient, id: string): Promise<void> {
+  await assertWritable(client);
   await client.bankMaster.delete({ where: { id } });
 }
 
@@ -137,6 +140,7 @@ export async function saveMicrCode(
   dto: Omit<BankMicrCodeDto, keyof import('@sams/shared-types').AuditFieldsDto> & { id?: string },
   actorId: string,
 ): Promise<BankMicrCodeDto> {
+  await assertWritable(client);
   const code = dto.micrCode?.trim();
   if (!code || !/^\d{9}$/.test(code)) {
     throw Object.assign(new Error('MICR code must be exactly 9 digits.'), { code: 'VALIDATION_ERROR' });
@@ -157,6 +161,7 @@ export async function saveMicrCode(
 }
 
 export async function deleteMicrCode(client: PrismaClient, id: string): Promise<void> {
+  await assertWritable(client);
   await client.bankMicrCode.delete({ where: { id } });
 }
 
@@ -210,6 +215,7 @@ export async function saveNarration(
   dto: Omit<NarrationMasterDto, keyof import('@sams/shared-types').AuditFieldsDto> & { id?: string },
   actorId: string,
 ): Promise<NarrationMasterDto> {
+  await assertWritable(client);
   if (!dto.shortCode?.trim() || !dto.narrationText?.trim()) {
     throw Object.assign(new Error('Short code and narration text are required.'), {
       code: 'VALIDATION_ERROR',
@@ -242,6 +248,7 @@ export async function saveNarration(
 }
 
 export async function deleteNarration(client: PrismaClient, id: string): Promise<void> {
+  await assertWritable(client);
   await client.narrationMaster.delete({ where: { id } });
 }
 
@@ -287,6 +294,7 @@ export async function saveAddressBookEntry(
   },
   actorId: string,
 ): Promise<AddressBookEntryDto> {
+  await assertWritable(client);
   if (!dto.accountMasterId) {
     throw Object.assign(new Error('Account is required.'), { code: 'VALIDATION_ERROR' });
   }
@@ -331,6 +339,7 @@ export async function saveAddressBookEntry(
 }
 
 export async function deleteAddressBookEntry(client: PrismaClient, id: string): Promise<void> {
+  await assertWritable(client);
   await client.addressBookEntry.delete({ where: { id } });
 }
 
@@ -360,6 +369,7 @@ export async function saveChequeReason(
   },
   actorId: string,
 ): Promise<ChequeCancellationReasonDto> {
+  await assertWritable(client);
   if (!dto.reasonCode?.trim() || !dto.reasonDescription?.trim()) {
     throw Object.assign(new Error('Reason code and description are required.'), {
       code: 'VALIDATION_ERROR',
@@ -390,6 +400,7 @@ export async function saveChequeReason(
 }
 
 export async function deleteChequeReason(client: PrismaClient, id: string): Promise<void> {
+  await assertWritable(client);
   await client.chequeCancellationReason.delete({ where: { id } });
 }
 
@@ -456,6 +467,7 @@ export async function saveContractor(
   dto: Omit<ContractorDetailDto, keyof import('@sams/shared-types').AuditFieldsDto> & { id?: string },
   actorId: string,
 ): Promise<ContractorDetailDto> {
+  await assertWritable(client);
   if (!dto.contractorName?.trim()) {
     throw Object.assign(new Error('Contractor name is required.'), { code: 'VALIDATION_ERROR' });
   }
@@ -490,5 +502,6 @@ export async function saveContractor(
 }
 
 export async function deleteContractor(client: PrismaClient, id: string): Promise<void> {
+  await assertWritable(client);
   await client.contractorDetail.delete({ where: { id } });
 }

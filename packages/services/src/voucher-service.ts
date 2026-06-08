@@ -36,6 +36,7 @@ import {
 } from './settlement-service.js';
 import { onReceiptPosted } from './statutory-register-service.js';
 import { createTdsFromPaymentVoucher } from './tds-service.js';
+import { assertWritable } from './assert-writable.js';
 
 function toNumber(value: { toString(): string } | number | null | undefined): number {
   if (value == null) return 0;
@@ -424,6 +425,7 @@ export async function postVoucher(
   dto: VoucherSaveDto,
   actorId: string,
 ): Promise<VoucherDetailDto> {
+  await assertWritable(client);
   validateSubType(dto.voucherType, dto.subType);
   const balance = validateVoucherBalance(dto.lines);
   if (!balance.balanced) {
@@ -650,33 +652,37 @@ export async function linkGeneralBill(
   amount: number,
   actorId: string,
 ): Promise<GeneralBillSettlementDto> {
-  const voucher = await client.voucher.findUniqueOrThrow({ where: { id: voucherId } });
-  const settlementDate = voucher.voucherDate;
+  await assertWritable(client);
+  return client.$transaction(async (tx) => {
+    const db = tx as PrismaClient;
+    const voucher = await db.voucher.findUniqueOrThrow({ where: { id: voucherId } });
+    const settlementDate = voucher.voucherDate;
 
-  await persistGeneralBillSettlement(client, voucherId, settlementDate, {
-    supplementaryBillId,
-    amount,
-  }, actorId);
+    await persistGeneralBillSettlement(db, voucherId, settlementDate, {
+      supplementaryBillId,
+      amount,
+    }, actorId);
 
-  const row = await client.generalBillSettlement.findFirstOrThrow({
-    where: { voucherId, supplementaryBillId },
-    include: { supplementaryBill: { select: { systemBillNo: true, generalPartyName: true } } },
-    orderBy: { createdAt: 'desc' },
+    const row = await db.generalBillSettlement.findFirstOrThrow({
+      where: { voucherId, supplementaryBillId },
+      include: { supplementaryBill: { select: { systemBillNo: true, generalPartyName: true } } },
+      orderBy: { createdAt: 'desc' },
+    });
+
+    return {
+      id: row.id,
+      voucherId: row.voucherId,
+      supplementaryBillId: row.supplementaryBillId,
+      systemBillNo: row.supplementaryBill.systemBillNo,
+      generalPartyName: row.supplementaryBill.generalPartyName,
+      amountAllocated: toNumber(row.amountAllocated),
+      settlementDate: row.settlementDate.toISOString().slice(0, 10),
+      createdAt: row.createdAt.toISOString(),
+      createdBy: row.createdBy,
+      updatedAt: row.updatedAt.toISOString(),
+      updatedBy: row.updatedBy,
+    };
   });
-
-  return {
-    id: row.id,
-    voucherId: row.voucherId,
-    supplementaryBillId: row.supplementaryBillId,
-    systemBillNo: row.supplementaryBill.systemBillNo,
-    generalPartyName: row.supplementaryBill.generalPartyName,
-    amountAllocated: toNumber(row.amountAllocated),
-    settlementDate: row.settlementDate.toISOString().slice(0, 10),
-    createdAt: row.createdAt.toISOString(),
-    createdBy: row.createdBy,
-    updatedAt: row.updatedAt.toISOString(),
-    updatedBy: row.updatedBy,
-  };
 }
 
 export async function listOpenBills(
@@ -702,6 +708,7 @@ export async function cancelVoucher(
   actorId: string,
   options?: { reasonId?: string; updateCheque?: boolean },
 ): Promise<{ original: VoucherDetailDto; reversal: VoucherDetailDto }> {
+  await assertWritable(client);
   const original = await client.voucher.findUniqueOrThrow({
     where: { id: voucherId },
     include: {

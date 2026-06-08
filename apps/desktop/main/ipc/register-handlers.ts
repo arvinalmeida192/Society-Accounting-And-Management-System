@@ -3,6 +3,7 @@ import { IpcChannels, PermissionAction, type IpcRequest } from '@sams/shared-typ
 import { AppConfigStore } from '../config/app-config.js';
 import { withIpcPipeline } from './pipeline.js';
 import {
+  authChangePasswordOptions,
   authGetSessionOptions,
   authLoginOptions,
   authLogoutOptions,
@@ -78,7 +79,6 @@ import {
   registersCreateOptions,
   registersDeleteOptions,
   registersReadOptions,
-  registersWriteOptions,
 } from './handlers/registers-handler.js';
 import {
   tdsHandlers,
@@ -86,22 +86,61 @@ import {
   tdsReadOptions,
   tdsWriteOptions,
 } from './handlers/tds-handler.js';
+import {
+  correspondenceHandlers,
+  correspondenceCreateOptions,
+  correspondenceDeleteOptions,
+  correspondencePrintOptions,
+  correspondenceReadOptions,
+  correspondenceWriteOptions,
+} from './handlers/correspondence-handler.js';
+import {
+  createAdminHandlers,
+  adminAuditExportOptions,
+  adminAuditReadOptions,
+  adminBackupReadOptions,
+  adminBackupWriteOptions,
+  adminUsersCreateOptions,
+  adminUsersReadOptions,
+  adminUsersWriteOptions,
+  adminYearEndReadOptions,
+  adminYearEndWriteOptions,
+} from './handlers/admin-handler.js';
+import {
+  reportHandlers,
+  reportExportOptions,
+  reportPrintOptions,
+  reportReadOptions,
+} from './handlers/report-handler.js';
 import { sessionManager } from '../session/session-manager.js';
 
-const publicOptions = {
+const startupPublicOptions = {
   resource: 'startup',
   action: PermissionAction.READ,
   requireSession: false,
 };
 
+const startupReadOptions = {
+  resource: 'startup',
+  action: PermissionAction.READ,
+  requireSession: true,
+};
+
+const startupCreateOptions = {
+  resource: 'startup',
+  action: PermissionAction.CREATE,
+  requireSession: true,
+};
+
 export function registerIpcHandlers(appConfig: AppConfigStore): void {
   const startup = createStartupHandlers(appConfig);
+  const admin = createAdminHandlers(appConfig);
 
   ipcMain.handle(
     IpcChannels.STARTUP_GET_RECENT_DATABASES,
     async (event, request: IpcRequest<Record<string, never>>) =>
       withIpcPipeline(request, sessionManager.get(), event, {
-        ...publicOptions,
+        ...startupPublicOptions,
         handler: startup.getRecentDatabases,
       }),
   );
@@ -110,7 +149,7 @@ export function registerIpcHandlers(appConfig: AppConfigStore): void {
     IpcChannels.STARTUP_VALIDATE_DATABASE,
     async (event, request: IpcRequest<{ path: string }>) =>
       withIpcPipeline(request, sessionManager.get(), event, {
-        ...publicOptions,
+        ...startupPublicOptions,
         handler: startup.validateDatabase,
       }),
   );
@@ -119,7 +158,7 @@ export function registerIpcHandlers(appConfig: AppConfigStore): void {
     IpcChannels.STARTUP_OPEN_DATABASE,
     async (event, request: IpcRequest<{ path: string }>) =>
       withIpcPipeline(request, sessionManager.get(), event, {
-        ...publicOptions,
+        ...startupPublicOptions,
         handler: startup.openDatabase,
       }),
   );
@@ -128,7 +167,7 @@ export function registerIpcHandlers(appConfig: AppConfigStore): void {
     IpcChannels.STARTUP_CREATE_SOCIETY,
     async (event, request: IpcRequest<Parameters<typeof startup.createSociety>[1]>) =>
       withIpcPipeline(request, sessionManager.get(), event, {
-        ...publicOptions,
+        ...startupPublicOptions,
         handler: startup.createSociety,
       }),
   );
@@ -137,8 +176,17 @@ export function registerIpcHandlers(appConfig: AppConfigStore): void {
     IpcChannels.STARTUP_OPEN_NEW_FINANCIAL_YEAR,
     async (event, request: IpcRequest<Parameters<typeof startup.openNewFinancialYear>[1]>) =>
       withIpcPipeline(request, sessionManager.get(), event, {
-        ...publicOptions,
+        ...startupCreateOptions,
         handler: startup.openNewFinancialYear,
+      }),
+  );
+
+  ipcMain.handle(
+    IpcChannels.STARTUP_CLOSE_DATABASE,
+    async (event, request: IpcRequest<Record<string, never>>) =>
+      withIpcPipeline(request, sessionManager.get(), event, {
+        ...startupReadOptions,
+        handler: startup.closeDatabaseSession,
       }),
   );
 
@@ -146,7 +194,7 @@ export function registerIpcHandlers(appConfig: AppConfigStore): void {
     IpcChannels.STARTUP_PICK_OPEN_DATABASE,
     async (event, request: IpcRequest<Record<string, never>>) =>
       withIpcPipeline(request, sessionManager.get(), event, {
-        ...publicOptions,
+        ...startupPublicOptions,
         handler: startup.pickOpenDatabase,
       }),
   );
@@ -155,7 +203,7 @@ export function registerIpcHandlers(appConfig: AppConfigStore): void {
     IpcChannels.STARTUP_PICK_SAVE_DATABASE,
     async (event, request: IpcRequest<{ defaultName?: string }>) =>
       withIpcPipeline(request, sessionManager.get(), event, {
-        ...publicOptions,
+        ...startupPublicOptions,
         handler: startup.pickSaveDatabase,
       }),
   );
@@ -170,6 +218,15 @@ export function registerIpcHandlers(appConfig: AppConfigStore): void {
 
   ipcMain.handle(IpcChannels.AUTH_LOGOUT, async (event, request: IpcRequest<Record<string, never>>) =>
     withIpcPipeline(request, sessionManager.get(), event, authLogoutOptions),
+  );
+
+  ipcMain.handle(
+    IpcChannels.AUTH_CHANGE_PASSWORD,
+    async (event, request: IpcRequest<{ currentPassword: string; newPassword: string }>) =>
+      withIpcPipeline(request, sessionManager.get(), event, {
+        ...authChangePasswordOptions,
+        requireSession: true,
+      }),
   );
 
   const societyOptions = {
@@ -545,7 +602,7 @@ export function registerIpcHandlers(appConfig: AppConfigStore): void {
     { channel: IpcChannels.VOUCHER_GET_OPEN_BILLS, options: voucherOptions, handler: voucherHandlers.getOpenBillsForMember },
     { channel: IpcChannels.VOUCHER_ALLOCATE_SETTLEMENT, options: voucherOptions, handler: voucherHandlers.allocateSettlement },
     { channel: IpcChannels.VOUCHER_LINK_GENERAL_BILL, options: { ...voucherCreateOptions, requireSession: true }, handler: voucherHandlers.linkGeneralBill },
-    { channel: IpcChannels.VOUCHER_CANCEL, options: { ...voucherCreateOptions, requireSession: true }, handler: voucherHandlers.cancel },
+    { channel: IpcChannels.VOUCHER_CANCEL, options: { resource: 'vouchers', action: PermissionAction.DELETE, requireDatabase: true, requireSession: true }, handler: voucherHandlers.cancel },
     { channel: IpcChannels.VOUCHER_GET_CHEQUE_PRINT_DATA, options: voucherOptions, handler: voucherHandlers.getChequePrintData },
   ];
 
@@ -652,6 +709,90 @@ export function registerIpcHandlers(appConfig: AppConfigStore): void {
   ];
 
   for (const entry of tdsChannels) {
+    ipcMain.handle(entry.channel, async (event, request) =>
+      withIpcPipeline(request, sessionManager.get(), event, {
+        ...entry.options,
+        handler: entry.handler,
+      }),
+    );
+  }
+
+  const correspondenceOptions = { ...correspondenceReadOptions, requireSession: true };
+  const correspondenceChannels = [
+    { channel: IpcChannels.CORRESPONDENCE_LIST_TEMPLATES, options: correspondenceOptions, handler: correspondenceHandlers.listTemplates },
+    { channel: IpcChannels.CORRESPONDENCE_SAVE_TEMPLATE, options: { ...correspondenceWriteOptions, requireSession: true }, handler: correspondenceHandlers.saveTemplate },
+    { channel: IpcChannels.CORRESPONDENCE_LIST_DEFAULTERS, options: correspondenceOptions, handler: correspondenceHandlers.listDefaulters },
+    { channel: IpcChannels.CORRESPONDENCE_GENERATE_REMINDER, options: { ...correspondenceCreateOptions, requireSession: true }, handler: correspondenceHandlers.generateReminder },
+    { channel: IpcChannels.CORRESPONDENCE_GET_GENERATED, options: correspondenceOptions, handler: correspondenceHandlers.getGeneratedLetter },
+    { channel: IpcChannels.CORRESPONDENCE_LIST_GENERATED, options: correspondenceOptions, handler: correspondenceHandlers.listGeneratedLetters },
+    { channel: IpcChannels.CORRESPONDENCE_SAVE_GENERAL_LETTER, options: { ...correspondenceCreateOptions, requireSession: true }, handler: correspondenceHandlers.saveGeneralLetter },
+    { channel: IpcChannels.CORRESPONDENCE_COMMITTEE_LIST, options: correspondenceOptions, handler: correspondenceHandlers.listCommittee },
+    { channel: IpcChannels.CORRESPONDENCE_COMMITTEE_SAVE, options: { ...correspondenceWriteOptions, requireSession: true }, handler: correspondenceHandlers.saveCommittee },
+    { channel: IpcChannels.CORRESPONDENCE_COMMITTEE_DELETE, options: { ...correspondenceDeleteOptions, requireSession: true }, handler: correspondenceHandlers.deleteCommittee },
+    { channel: IpcChannels.CORRESPONDENCE_MINUTES_LIST, options: correspondenceOptions, handler: correspondenceHandlers.listMinutes },
+    { channel: IpcChannels.CORRESPONDENCE_MINUTES_GET, options: correspondenceOptions, handler: correspondenceHandlers.getMinutes },
+    { channel: IpcChannels.CORRESPONDENCE_MINUTES_SAVE, options: { ...correspondenceWriteOptions, requireSession: true }, handler: correspondenceHandlers.saveMinutes },
+    { channel: IpcChannels.CORRESPONDENCE_MINUTES_DELETE, options: { ...correspondenceDeleteOptions, requireSession: true }, handler: correspondenceHandlers.deleteMinutes },
+    { channel: IpcChannels.CORRESPONDENCE_MINUTES_RENDER_PRINT, options: { ...correspondencePrintOptions, requireSession: true }, handler: correspondenceHandlers.renderMinutesPrint },
+  ];
+
+  for (const entry of correspondenceChannels) {
+    ipcMain.handle(entry.channel, async (event, request) =>
+      withIpcPipeline(request, sessionManager.get(), event, {
+        ...entry.options,
+        handler: entry.handler,
+      }),
+    );
+  }
+
+  const adminReadOptions = { ...adminUsersReadOptions, requireSession: true };
+  const adminChannels = [
+    { channel: IpcChannels.ADMIN_LIST_USERS, options: adminReadOptions, handler: admin.listUsers },
+    { channel: IpcChannels.ADMIN_SAVE_USER, options: { ...adminUsersWriteOptions, requireSession: true }, handler: admin.saveUser },
+    { channel: IpcChannels.ADMIN_RESET_PASSWORD, options: { ...adminUsersWriteOptions, requireSession: true }, handler: admin.resetPassword },
+    { channel: IpcChannels.ADMIN_BACKUP, options: { ...adminBackupWriteOptions, requireSession: true, allowWhenReadOnly: true }, handler: admin.backup },
+    { channel: IpcChannels.ADMIN_RESTORE, options: { ...adminBackupWriteOptions, requireSession: true, allowWhenReadOnly: true }, handler: admin.restore },
+    { channel: IpcChannels.ADMIN_GET_SCHEDULED_BACKUP, options: { ...adminBackupReadOptions, requireSession: true, allowWhenReadOnly: true }, handler: admin.getScheduledBackup },
+    { channel: IpcChannels.ADMIN_SCHEDULE_BACKUP, options: { ...adminBackupWriteOptions, requireSession: true, allowWhenReadOnly: true }, handler: admin.scheduleBackup },
+    { channel: IpcChannels.ADMIN_YEAR_END_CHECKLIST, options: { ...adminYearEndReadOptions, requireSession: true, allowWhenReadOnly: true }, handler: admin.yearEndChecklist },
+    { channel: IpcChannels.ADMIN_YEAR_END_CLOSE, options: { ...adminYearEndWriteOptions, requireSession: true }, handler: admin.yearEndClose },
+    { channel: IpcChannels.ADMIN_REOPEN_YEAR, options: { ...adminYearEndWriteOptions, requireSession: true, allowWhenReadOnly: true }, handler: admin.reopenYear },
+    { channel: IpcChannels.ADMIN_LIST_AUDIT_LOG, options: { ...adminAuditReadOptions, requireSession: true }, handler: admin.listAuditLog },
+    { channel: IpcChannels.ADMIN_EXPORT_AUDIT_LOG, options: { ...adminAuditExportOptions, requireSession: true }, handler: admin.exportAuditLog },
+  ];
+
+  for (const entry of adminChannels) {
+    ipcMain.handle(entry.channel, async (event, request) =>
+      withIpcPipeline(request, sessionManager.get(), event, {
+        ...entry.options,
+        handler: entry.handler,
+      }),
+    );
+  }
+
+  const reportOptions = { ...reportReadOptions, requireSession: true };
+  const reportChannels = [
+    { channel: IpcChannels.REPORT_LIST, options: reportOptions, handler: reportHandlers.list },
+    { channel: IpcChannels.REPORT_RUN, options: reportOptions, handler: reportHandlers.run },
+    { channel: IpcChannels.REPORT_PREVIEW, options: reportOptions, handler: reportHandlers.preview },
+    {
+      channel: IpcChannels.REPORT_EXPORT_CSV,
+      options: { ...reportExportOptions, requireSession: true },
+      handler: reportHandlers.exportCsv,
+    },
+    {
+      channel: IpcChannels.REPORT_EXPORT_PDF,
+      options: { ...reportExportOptions, requireSession: true },
+      handler: reportHandlers.exportPdf,
+    },
+    {
+      channel: IpcChannels.REPORT_PRINT,
+      options: { ...reportPrintOptions, requireSession: true },
+      handler: reportHandlers.print,
+    },
+  ];
+
+  for (const entry of reportChannels) {
     ipcMain.handle(entry.channel, async (event, request) =>
       withIpcPipeline(request, sessionManager.get(), event, {
         ...entry.options,

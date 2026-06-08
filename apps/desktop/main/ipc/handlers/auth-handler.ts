@@ -6,7 +6,7 @@ import {
   type SessionDto,
 } from '@sams/shared-types';
 import { PermissionAction } from '@sams/shared-types';
-import { AuthError, loginUser } from '@sams/services';
+import { AuthError, changePassword, loginUser } from '@sams/services';
 import { getActivePrisma, hasActiveDatabase } from '../../database/database-manager.js';
 import { sessionManager } from '../../session/session-manager.js';
 import type { IpcHandler } from '../pipeline.js';
@@ -43,6 +43,28 @@ export const logoutHandler: IpcHandler<Record<string, never>, LogoutResult> = as
   return { success: true };
 };
 
+export const changePasswordHandler: IpcHandler<
+  { currentPassword: string; newPassword: string },
+  { success: boolean }
+> = async (ctx, payload) => {
+  if (!ctx.session.userId) {
+    throw new Error('User session is required.');
+  }
+  try {
+    return await changePassword(
+      getActivePrisma(),
+      ctx.session.userId,
+      payload.currentPassword,
+      payload.newPassword,
+    );
+  } catch (error) {
+    if (error instanceof AuthError) {
+      throw Object.assign(new Error(error.message), { code: error.code });
+    }
+    throw error;
+  }
+};
+
 export const authGetSessionOptions = {
   resource: 'auth',
   action: PermissionAction.READ,
@@ -63,4 +85,11 @@ export const authLogoutOptions = {
   action: PermissionAction.READ,
   requireSession: true,
   handler: logoutHandler,
+};
+
+export const authChangePasswordOptions = {
+  resource: 'auth',
+  action: PermissionAction.UPDATE,
+  requireDatabase: true,
+  handler: changePasswordHandler,
 };

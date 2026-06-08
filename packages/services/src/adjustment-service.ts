@@ -11,6 +11,7 @@ import {
 import { parseIsoDate } from './financial-year.js';
 import { allocateToBill } from './settlement-service.js';
 import { cancelVoucher, postVoucher, validateVoucherBalance } from './voucher-service.js';
+import { assertWritable } from './assert-writable.js';
 
 function toNumber(value: { toString(): string } | number | null | undefined): number {
   if (value == null) return 0;
@@ -74,6 +75,7 @@ export async function postAdjustmentVoucher(
   dto: AdjustmentVoucherDto,
   actorId: string,
 ): Promise<VoucherDetailDto> {
+  await assertWritable(client);
   assertAdjustmentType(dto.voucherType);
   const balance = validateVoucherBalance(dto.lines);
   if (!balance.balanced) {
@@ -156,6 +158,7 @@ export async function postPartialWaiver(
   input: PartialWaiverInputDto,
   actorId: string,
 ): Promise<PartialWaiverResultDto> {
+  await assertWritable(client);
   const preview = await previewPartialWaiver(client, input);
   const voucherType = input.voucherType ?? VoucherType.JV;
   assertAdjustmentType(voucherType);
@@ -193,6 +196,7 @@ export async function cancelAdjustmentVoucher(
   cancelDate: string,
   actorId: string,
 ): Promise<{ original: VoucherDetailDto; reversal: VoucherDetailDto }> {
+  await assertWritable(client);
   const voucher = await client.voucher.findUniqueOrThrow({ where: { id: voucherId } });
   assertAdjustmentType(voucher.voucherType as VoucherType);
   return cancelVoucher(client, voucherId, cancelDate, actorId);

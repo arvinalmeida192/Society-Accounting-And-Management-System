@@ -14,6 +14,7 @@ import {
   type WingDto,
 } from '@sams/shared-types';
 import { canDeleteBuilding, canDeleteWing } from './reference-guard-service.js';
+import { assertWritable } from './assert-writable.js';
 
 function decimalToNumber(value: Prisma.Decimal | number | null | undefined): number | null {
   if (value == null) return null;
@@ -154,6 +155,7 @@ export async function saveBuilding(
   dto: BuildingDto,
   actorId: string,
 ): Promise<BuildingDto> {
+  await assertWritable(client);
   if (!dto.shortName?.trim() || dto.shortName.length > 10) {
     throw Object.assign(new Error('Building short name is required (max 10 characters).'), {
       fieldErrors: { shortName: 'Required, max 10 characters.' },
@@ -186,6 +188,7 @@ export async function deleteBuilding(
   id: string,
   actorId: string,
 ): Promise<{ deleted: boolean; blockReason?: string }> {
+  await assertWritable(client);
   const guard = await canDeleteBuilding(client, id);
   if (!guard.allowed) {
     return { deleted: false, blockReason: guard.references.join('; ') };
@@ -212,6 +215,7 @@ export async function saveWing(
   dto: WingDto,
   actorId: string,
 ): Promise<WingDto> {
+  await assertWritable(client);
   if (!dto.shortName?.trim()) {
     throw Object.assign(new Error('Wing short name is required.'), {
       fieldErrors: { shortName: 'Required.' },
@@ -237,6 +241,7 @@ export async function deleteWing(
   id: string,
   actorId: string,
 ): Promise<{ deleted: boolean; blockReason?: string }> {
+  await assertWritable(client);
   const guard = await canDeleteWing(client, id);
   if (!guard.allowed) {
     return { deleted: false, blockReason: guard.references.join('; ') };
@@ -316,6 +321,7 @@ export async function saveReferenceMaster(
   data: Record<string, unknown>,
   actorId: string,
 ): Promise<unknown> {
+  await assertWritable(client);
   const id = typeof data.id === 'string' ? data.id : undefined;
 
   switch (type) {
@@ -482,6 +488,7 @@ export async function saveUnit(
   dto: UnitSaveDto,
   actorId: string,
 ): Promise<UnitDetailDto> {
+  await assertWritable(client);
   if (!dto.unitNo?.trim()) {
     throw Object.assign(new Error('Unit number is required.'), {
       fieldErrors: { unitNo: 'Required.' },
@@ -542,6 +549,7 @@ export async function archiveUnit(
   id: string,
   actorId: string,
 ): Promise<UnitDto> {
+  await assertWritable(client);
   const record = await client.unit.update({
     where: { id },
     data: {

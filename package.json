@@ -8,6 +8,7 @@
     "apps/*"
   ],
   "scripts": {
+    "postinstall": "npm run build -w @sams/shared-types && npm run build -w @sams/services",
     "dev": "npm run dev -w @sams/desktop",
     "build": "npm run build -w @sams/desktop",
     "test": "npm run test --workspaces --if-present",

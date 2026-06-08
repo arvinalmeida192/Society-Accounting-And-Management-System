@@ -7,7 +7,7 @@ import { NewSocietyWizard } from './screens/NewSocietyWizard';
 import { StartupScreen } from './screens/StartupScreen';
 
 function AppRoutes(): React.ReactElement {
-  const { session, loading, bootError, refreshSession } = useSession();
+  const { session, loading, bootError, refreshSession, pendingDatabasePath } = useSession();
 
   if (loading) {
     return <div className="loading-screen">Loading SAMS…</div>;
@@ -24,7 +24,7 @@ function AppRoutes(): React.ReactElement {
     );
   }
 
-  const hasDatabase = Boolean(session?.databasePath);
+  const hasDatabase = Boolean(session?.databasePath ?? pendingDatabasePath);
   const isAuthenticated = Boolean(session?.userId);
 
   return (
@@ -48,7 +48,15 @@ function AppRoutes(): React.ReactElement {
       />
       <Route
         path="/startup/new-year"
-        element={hasDatabase ? <Navigate to="/login" replace /> : <NewFinancialYearWizard />}
+        element={
+          !hasDatabase ? (
+            <Navigate to="/startup" replace />
+          ) : !isAuthenticated ? (
+            <Navigate to="/login" replace />
+          ) : (
+            <NewFinancialYearWizard />
+          )
+        }
       />
       <Route
         path="/login"

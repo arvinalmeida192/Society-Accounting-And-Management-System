@@ -1,7 +1,6 @@
 import { useCallback, useEffect, useState } from 'react';
 import {
   MemberGender,
-  MaritalStatus,
   OpeningBalanceType,
   type BuildingDto,
   type MemberDependentDto,

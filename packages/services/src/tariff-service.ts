@@ -22,6 +22,7 @@ import {
 } from '@sams/shared-types';
 import { Money, type TariffDecimalPlaces } from './money.js';
 import { parseIsoDate } from './financial-year.js';
+import { assertWritable } from './assert-writable.js';
 
 const SCOPE_PRIORITY: PrismaTariffScopeLevel[] = [
   PrismaTariffScopeLevel.UNIT,
@@ -285,6 +286,7 @@ export async function saveTariffDefinition(
   dto: TariffDefinitionSaveDto,
   actorId: string,
 ): Promise<TariffDefinitionDto> {
+  await assertWritable(client);
   const errors = validateTariffLines(dto.lines);
   if (Object.keys(errors).length > 0) {
     throw Object.assign(new Error('Validation failed'), { fieldErrors: errors });
@@ -396,6 +398,7 @@ export async function cloneTariffDefinition(
   newEffectiveDate: string,
   actorId: string,
 ): Promise<TariffDefinitionDto> {
+  await assertWritable(client);
   const source = await getTariffDefinition(client, sourceId);
   return saveTariffDefinition(
     client,
@@ -422,6 +425,7 @@ export async function reorderTariffLines(
   lineIds: string[],
   actorId: string,
 ): Promise<TariffLineDto[]> {
+  await assertWritable(client);
   const definition = await client.tariffDefinition.findUniqueOrThrow({
     where: { id: definitionId },
     include: { lines: true },
@@ -748,6 +752,7 @@ export async function saveSettlementSequence(
   dto: TariffSettlementSequenceSaveDto,
   actorId: string,
 ): Promise<TariffSettlementSequenceDto> {
+  await assertWritable(client);
   const financialYearId = await getActiveFinancialYearId(client);
   const effectiveDate = parseIsoDate(dto.effectiveDate, 'effectiveDate');
 
@@ -841,6 +846,7 @@ export async function saveBillRegisterMapping(
   dto: TariffBillRegisterMappingSaveDto,
   actorId: string,
 ): Promise<TariffBillRegisterMappingDto[]> {
+  await assertWritable(client);
   const financialYearId = await getActiveFinancialYearId(client);
 
   await client.$transaction(async (tx) => {

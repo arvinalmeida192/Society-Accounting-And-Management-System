@@ -5,7 +5,7 @@ import { useSession } from '../hooks/SessionContext';
 
 export function LoginScreen(): React.ReactElement {
   const navigate = useNavigate();
-  const { session: sessionInfo, refreshSession } = useSession();
+  const { session: sessionInfo, refreshSession, postLoginRoute, setPostLoginRoute } = useSession();
   const [username, setUsername] = useState('admin');
   const [password, setPassword] = useState('');
   const [error, setError] = useState<string | null>(null);
@@ -27,8 +27,12 @@ export function LoginScreen(): React.ReactElement {
         setError(getIpcErrorMessage(response.error));
         return;
       }
-      await refreshSession();
-      navigate('/app/home');
+      const updated = await refreshSession();
+      const destination = postLoginRoute ?? '/app/home';
+      setPostLoginRoute(null);
+      if (updated?.userId) {
+        navigate(destination);
+      }
     } finally {
       setBusy(false);
     }

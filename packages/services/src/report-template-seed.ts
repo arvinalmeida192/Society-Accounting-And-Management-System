@@ -125,4 +125,7 @@ export async function seedSocietyConfiguration(
 
   const { seedMiscellaneousMasters } = await import('./masters-seed.js');
   await seedMiscellaneousMasters(client, actorId);
+
+  const { seedLetterTemplates } = await import('./letter-template-seed.js');
+  await seedLetterTemplates(client, actorId);
 }

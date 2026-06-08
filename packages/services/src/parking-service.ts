@@ -7,6 +7,7 @@ import type {
   ParkingTariffTypeDto,
 } from '@sams/shared-types';
 import { Money } from './money.js';
+import { assertWritable } from './assert-writable.js';
 
 function decimalToNumber(value: Prisma.Decimal | number | null | undefined): number {
   if (value == null) return 0;
@@ -91,6 +92,7 @@ export async function saveParkingTariffType(
   dto: ParkingTariffTypeDto,
   actorId: string,
 ): Promise<ParkingTariffTypeDto> {
+  await assertWritable(client);
   if (!dto.typeName?.trim()) {
     throw new Error('Parking tariff type name is required.');
   }
@@ -115,6 +117,7 @@ export async function addParkingTariffRate(
   monthlyRate: number,
   actorId: string,
 ): Promise<ParkingTariffRateDto> {
+  await assertWritable(client);
   const record = await client.parkingTariffRate.create({
     data: {
       parkingTariffTypeId: typeId,
@@ -154,6 +157,7 @@ export async function saveParkingSpace(
   dto: ParkingSpaceDto,
   actorId: string,
 ): Promise<ParkingSpaceDto> {
+  await assertWritable(client);
   if (!dto.parkingNo?.trim()) {
     throw new Error('Parking number is required.');
   }
@@ -206,6 +210,7 @@ export async function saveParkingAssignment(
   dto: MemberParkingAssignmentDto,
   actorId: string,
 ): Promise<MemberParkingAssignmentDto> {
+  await assertWritable(client);
   const data = {
     memberId: dto.memberId,
     parkingSpaceId: dto.parkingSpaceId,

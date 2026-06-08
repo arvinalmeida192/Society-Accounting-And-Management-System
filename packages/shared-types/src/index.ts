@@ -51,6 +51,7 @@ export const IpcChannels = {
   STARTUP_OPEN_DATABASE: 'startup:openDatabase',
   STARTUP_CREATE_SOCIETY: 'startup:createSociety',
   STARTUP_OPEN_NEW_FINANCIAL_YEAR: 'startup:openNewFinancialYear',
+  STARTUP_CLOSE_DATABASE: 'startup:closeDatabase',
   STARTUP_PICK_OPEN_DATABASE: 'startup:pickOpenDatabase',
   STARTUP_PICK_SAVE_DATABASE: 'startup:pickSaveDatabase',
   AUTH_LOGIN: 'auth:login',
@@ -211,6 +212,39 @@ export const IpcChannels = {
   TDS_LIST_CHALLANS: 'tds:listChallans',
   TDS_SAVE_CHALLAN: 'tds:saveChallan',
   TDS_GENERATE_FORM16A: 'tds:generateForm16A',
+  CORRESPONDENCE_LIST_TEMPLATES: 'correspondence:listTemplates',
+  CORRESPONDENCE_SAVE_TEMPLATE: 'correspondence:saveTemplate',
+  CORRESPONDENCE_LIST_DEFAULTERS: 'correspondence:listDefaulters',
+  CORRESPONDENCE_GENERATE_REMINDER: 'correspondence:generateReminder',
+  CORRESPONDENCE_GET_GENERATED: 'correspondence:getGeneratedLetter',
+  CORRESPONDENCE_LIST_GENERATED: 'correspondence:listGeneratedLetters',
+  CORRESPONDENCE_SAVE_GENERAL_LETTER: 'correspondence:saveGeneralLetter',
+  CORRESPONDENCE_COMMITTEE_LIST: 'correspondence:committee:list',
+  CORRESPONDENCE_COMMITTEE_SAVE: 'correspondence:committee:save',
+  CORRESPONDENCE_COMMITTEE_DELETE: 'correspondence:committee:delete',
+  CORRESPONDENCE_MINUTES_LIST: 'correspondence:minutes:list',
+  CORRESPONDENCE_MINUTES_GET: 'correspondence:minutes:get',
+  CORRESPONDENCE_MINUTES_SAVE: 'correspondence:minutes:save',
+  CORRESPONDENCE_MINUTES_DELETE: 'correspondence:minutes:delete',
+  CORRESPONDENCE_MINUTES_RENDER_PRINT: 'correspondence:minutes:renderPrint',
+  ADMIN_LIST_USERS: 'admin:listUsers',
+  ADMIN_SAVE_USER: 'admin:saveUser',
+  ADMIN_RESET_PASSWORD: 'admin:resetPassword',
+  ADMIN_BACKUP: 'admin:backup',
+  ADMIN_RESTORE: 'admin:restore',
+  ADMIN_SCHEDULE_BACKUP: 'admin:scheduleBackup',
+  ADMIN_GET_SCHEDULED_BACKUP: 'admin:getScheduledBackup',
+  ADMIN_YEAR_END_CHECKLIST: 'admin:yearEndChecklist',
+  ADMIN_YEAR_END_CLOSE: 'admin:yearEndClose',
+  ADMIN_REOPEN_YEAR: 'admin:reopenYear',
+  ADMIN_LIST_AUDIT_LOG: 'admin:listAuditLog',
+  ADMIN_EXPORT_AUDIT_LOG: 'admin:exportAuditLog',
+  REPORT_LIST: 'report:list',
+  REPORT_RUN: 'report:run',
+  REPORT_PREVIEW: 'report:preview',
+  REPORT_EXPORT_CSV: 'report:exportCsv',
+  REPORT_EXPORT_PDF: 'report:exportPdf',
+  REPORT_PRINT: 'report:print',
 } as const;
 
 export type IpcChannel = (typeof IpcChannels)[keyof typeof IpcChannels] | string;
@@ -255,6 +289,7 @@ export interface ValidateDatabaseResult {
   fyLabel?: string;
   isReadOnly?: boolean;
   errorMessage?: string;
+  errorCode?: string;
 }
 
 export interface OpenDatabasePayload {
@@ -315,6 +350,8 @@ export interface CreateSocietyResult {
 export interface OpenNewFinancialYearPayload {
   sourceDbPath: string;
   targetDbPath: string;
+  newFyStartDate?: string;
+  newFyEndDate?: string;
   carryForwardOptions?: Record<string, boolean>;
 }
 
@@ -624,10 +661,19 @@ export function permissionKey(resource: string, action: PermissionAction): strin
   return `${resource}:${action}`;
 }
 
+export interface ScheduledBackupConfigDto {
+  enabled: boolean;
+  intervalHours: number;
+  targetDir: string;
+  lastRunAt?: string | null;
+  lastRunError?: string | null;
+}
+
 export interface AppConfigDto {
   recentDatabases: RecentDatabaseEntry[];
   windowBounds?: { x: number; y: number; width: number; height: number };
   explorerExpandedNodes: string[];
+  scheduledBackup?: ScheduledBackupConfigDto;
 }
 
 /** SDD §30.1 — Chart of Accounts enums */
@@ -2038,4 +2084,273 @@ export interface Form16AResultDto {
   financialYearLabel?: string;
   totalDeductions?: number;
   groupCount?: number;
+}
+
+export enum LetterType {
+  GENERAL_REMINDER = 'GENERAL_REMINDER',
+  MCACT_101 = 'MCACT_101',
+  CUSTOM = 'CUSTOM',
+}
+
+export enum CommitteeStatus {
+  ACTIVE = 'ACTIVE',
+  INACTIVE = 'INACTIVE',
+}
+
+export interface LetterTemplateDto {
+  id: string;
+  letterType: LetterType;
+  name: string;
+  bodyTemplate: string;
+  isActive: boolean;
+  createdAt: string;
+  createdBy: string;
+  updatedAt: string;
+  updatedBy: string;
+}
+
+export interface GeneratedLetterDto {
+  id: string;
+  financialYearId: string;
+  letterTemplateId: string | null;
+  memberId: string | null;
+  memberName: string | null;
+  letterType: LetterType;
+  referenceNo: string;
+  issueDate: string;
+  balanceAsOnDate: string;
+  amountDue: number;
+  renderedHtml: string;
+  pdfPath: string | null;
+  subject: string | null;
+  createdAt: string;
+  createdBy: string;
+  updatedAt: string;
+  updatedBy: string;
+}
+
+export interface DefaulterMemberDto {
+  memberId: string;
+  memberName: string;
+  unitNo: string;
+  buildingName: string;
+  wingName: string;
+  outstanding: number;
+}
+
+export interface GenerateReminderDto {
+  letterType: LetterType;
+  letterTemplateId?: string;
+  balanceAsOnDate: string;
+  issueDate?: string;
+  memberIds?: string[];
+  minOutstanding?: number;
+  buildingId?: string;
+  financialYearId?: string;
+}
+
+export interface GenerateReminderResultDto {
+  letters: GeneratedLetterDto[];
+  generated: number;
+}
+
+export interface SaveGeneralLetterDto {
+  subject: string;
+  bodyHtml: string;
+  issueDate: string;
+  balanceAsOnDate?: string;
+  memberId?: string;
+  amountDue?: number;
+  referenceNo?: string;
+  financialYearId?: string;
+}
+
+export interface CommitteeMemberDto {
+  id: string;
+  financialYearId: string;
+  effectiveDate: string;
+  termEndsOn: string | null;
+  buildingId: string | null;
+  wingId: string | null;
+  unitId: string | null;
+  memberId: string;
+  memberName: string;
+  buildingName: string | null;
+  wingName: string | null;
+  unitNo: string | null;
+  designation: string;
+  status: CommitteeStatus;
+  createdAt: string;
+  createdBy: string;
+  updatedAt: string;
+  updatedBy: string;
+}
+
+export interface MeetingAttendeeDto {
+  id: string;
+  meetingId: string;
+  memberId: string;
+  memberName: string;
+  designation: string | null;
+  attended: boolean;
+  comments: string | null;
+  createdAt: string;
+  createdBy: string;
+  updatedAt: string;
+  updatedBy: string;
+}
+
+export interface MeetingMinutesDto {
+  id: string;
+  financialYearId: string;
+  meetingNo: number;
+  meetingDate: string;
+  meetingTime: string | null;
+  natureOfMeeting: string | null;
+  resolutionDetails: string | null;
+  commentsNotings: string | null;
+  attendees: MeetingAttendeeDto[];
+  createdAt: string;
+  createdBy: string;
+  updatedAt: string;
+  updatedBy: string;
+}
+
+export interface UserSaveDto {
+  id?: string;
+  username: string;
+  displayName: string;
+  role: UserRole;
+  isActive: boolean;
+  password?: string;
+}
+
+export interface BackupResultDto {
+  path: string;
+  manifestPath: string;
+  checksum: string;
+  integrityOk: boolean;
+}
+
+export interface RestoreResultDto {
+  path: string;
+  integrityOk: boolean;
+  reconnected?: boolean;
+}
+
+export interface YearEndChecklistDto {
+  financialYearLabel: string;
+  unclearedCheques: number;
+  draftBills: number;
+  draftVouchers: number;
+  isReadOnly: boolean;
+  isYearClosed: boolean;
+}
+
+export interface YearEndCloseResultDto {
+  isReadOnly: boolean;
+  financialYearLabel: string;
+  closedAt: string;
+}
+
+export interface AuditLogDto {
+  id: string;
+  userId: string;
+  username: string;
+  displayName: string;
+  action: AuditAction;
+  entityName: string;
+  entityId: string;
+  oldValueJson: string | null;
+  newValueJson: string | null;
+  timestamp: string;
+  ipAddress: string | null;
+}
+
+export interface AuditLogFilterDto {
+  userId?: string;
+  entityName?: string;
+  action?: AuditAction;
+  dateFrom?: string;
+  dateTo?: string;
+  limit?: number;
+}
+
+/** Phase 18 — Report engine types (SDD §28) */
+export type ReportId =
+  | 'RPT-B01'
+  | 'RPT-B02'
+  | 'RPT-B03'
+  | 'RPT-B04'
+  | 'RPT-B05'
+  | 'RPT-B06'
+  | 'RPT-B07'
+  | 'RPT-B08'
+  | 'RPT-M01'
+  | 'RPT-M02'
+  | 'RPT-M03'
+  | 'RPT-M04'
+  | 'RPT-M05'
+  | 'RPT-M06'
+  | 'RPT-M07'
+  | 'RPT-M08';
+
+export interface ReportColumnDef {
+  key: string;
+  label: string;
+  align?: 'left' | 'right';
+  format?: 'text' | 'date' | 'currency' | 'number';
+}
+
+export interface ReportRowDrillDown {
+  refType: 'BILL' | 'MEMBER' | 'VOUCHER' | 'GENERATED_LETTER';
+  refId: string;
+}
+
+export interface ReportRow {
+  cells: Record<string, string | number | null>;
+  drillDown?: ReportRowDrillDown;
+}
+
+export interface ReportTotals {
+  cells: Record<string, number>;
+}
+
+export interface ReportResultDto {
+  reportId: ReportId;
+  title: string;
+  columns: ReportColumnDef[];
+  rows: ReportRow[];
+  totals?: ReportTotals;
+  metadata: {
+    generatedAt: string;
+    financialYearId: string;
+    societyName: string;
+    fyLabel: string;
+    parameters: Record<string, unknown>;
+    supportsDrillDown: boolean;
+    orientation: 'portrait' | 'landscape';
+  };
+}
+
+export interface ReportCatalogEntryDto {
+  reportId: ReportId;
+  title: string;
+  category: 'billing' | 'member';
+  supportsDrillDown: boolean;
+}
+
+export interface ReportRunPayload {
+  reportId: ReportId;
+  parameters: Record<string, unknown>;
+}
+
+export interface ReportPreviewResultDto {
+  html: string;
+  rowCount: number;
+  result: ReportResultDto;
+}
+
+export interface ReportExportResultDto {
+  path: string;
 }

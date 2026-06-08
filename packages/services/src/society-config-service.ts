@@ -15,6 +15,7 @@ import {
 } from '@sams/shared-types';
 import { regenerateBillingPeriodCalendar } from './billing-period-service.js';
 import { getInterestHelpText } from './interest-help-text.js';
+import { assertWritable } from './assert-writable.js';
 
 function toIso(date: Date | null | undefined): string | null {
   return date ? date.toISOString() : null;
@@ -231,6 +232,7 @@ export async function updateSocietyIdentity(
   dto: SocietyIdentityDto,
   actorId: string,
 ): Promise<SocietyIdentityDto> {
+  await assertWritable(client);
   if (!dto.societyName?.trim()) {
     throw new Error('Society name is required.');
   }
@@ -295,6 +297,7 @@ export async function updateSocietyParameters(
   financialYearId: string,
   acknowledgeFrequencyWarning = false,
 ): Promise<UpdateParametersResult> {
+  await assertWritable(client);
   const errors = validateInterestRates(dto);
   if (Object.keys(errors).length > 0) {
     throw Object.assign(new Error(Object.values(errors).join(' ')), { fieldErrors: errors });
@@ -425,6 +428,7 @@ export async function updatePropertyInformation(
   dto: PropertyInformationDto,
   actorId: string,
 ): Promise<PropertyInformationDto> {
+  await assertWritable(client);
   await client.propertyInformation.update({
     where: { id: dto.id },
     data: {
@@ -475,6 +479,7 @@ export async function updateReportFormatConfig(
   dto: ReportFormatConfigDto,
   actorId: string,
 ): Promise<ReportFormatConfigDto> {
+  await assertWritable(client);
   const record = await client.reportFormatConfig.update({
     where: { id: dto.id },
     data: {

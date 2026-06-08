@@ -1,11 +1,14 @@
 import { useCallback, useEffect, useState } from 'react';
+import { useNavigate } from 'react-router-dom';
 import type {
+  BillReferenceType,
   BillingPeriodDto,
   BillSettlementDto,
   MemberListItemDto,
   RegularBillDetailDto,
   SocietyParametersDto,
 } from '@sams/shared-types';
+import { useTabStore } from '../../store/tabStore';
 import {
   AuditIdentityModal,
   BillReferencePanel,
@@ -15,8 +18,12 @@ import {
   MoneyInput,
 } from '../../components';
 import { getIpcErrorMessage } from '../../hooks/session';
+import { useReadOnlySession } from '../../hooks/useReadOnlySession';
 
 export function RegularBillScreen(): React.ReactElement {
+  const readOnly = useReadOnlySession();
+  const navigate = useNavigate();
+  const openTab = useTabStore((state) => state.openTab);
   const [periods, setPeriods] = useState<BillingPeriodDto[]>([]);
   const [members, setMembers] = useState<MemberListItemDto[]>([]);
   const [parameters, setParameters] = useState<SocietyParametersDto | null>(null);
@@ -285,6 +292,33 @@ export function RegularBillScreen(): React.ReactElement {
         open={referenceOpen}
         billId={bill?.id ?? null}
         onClose={() => setReferenceOpen(false)}
+        onNavigate={(refType: BillReferenceType) => {
+          const routes: Partial<Record<BillReferenceType, { id: string; title: string; route: string }>> = {
+            ALL_BILLS: { id: 'bil-bulk', title: 'Bulk Regular Bills', route: '/app/billing/regular/bulk' },
+            RECEIPTS: { id: 'vch-entry', title: 'Receipt / Payment', route: '/app/transactions/voucher' },
+            ADJUSTMENTS: { id: 'vch-adj', title: 'JV / DN / CN', route: '/app/transactions/adjustments' },
+            MEMBER_LEDGER: {
+              id: 'mem-reg',
+              title: 'Member Register',
+              route: memberId ? `/app/members/register?memberId=${memberId}` : '/app/members/register',
+            },
+            CONTRIBUTION: {
+              id: 'rpt-b05',
+              title: 'Contribution Summary',
+              route: `/app/reports/RPT-B05${memberId ? `?memberId=${memberId}&autoRun=1` : '?autoRun=1'}`,
+            },
+            OPENING_BILL: {
+              id: 'mem-reg',
+              title: 'Member Register',
+              route: memberId ? `/app/members/register?memberId=${memberId}` : '/app/members/register',
+            },
+          };
+          const target = routes[refType];
+          if (!target) return;
+          openTab(target);
+          navigate(target.route);
+          setReferenceOpen(false);
+        }}
       />
 
       <ConfirmDialog

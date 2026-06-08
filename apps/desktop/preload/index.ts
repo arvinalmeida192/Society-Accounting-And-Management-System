@@ -26,17 +26,14 @@ import {
   type SocietyParametersDto,
   type BuildingDto,
   type WingDto,
-  type UnitDto,
   type UnitDetailDto,
   type UnitSaveDto,
   type ReferenceMasterType,
   type ParkingTariffTypeDto,
-  type ParkingTariffRateDto,
   type ParkingSpaceDto,
   type MemberParkingAssignmentDto,
   type ParkingChargeLineDto,
   type DeleteGuardResult,
-  type MemberDto,
   type MemberFullDto,
   type MemberIdentificationDto,
   type MemberPersonalDto,
@@ -47,15 +44,12 @@ import {
   type MemberShareDto,
   type MemberHousingLoanDto,
   type MemberOpeningBalanceSaveDto,
-  type MemberOpeningBalanceResult,
   type MemberListItemDto,
   type UnitVacancyResult,
   type TenantDto,
   type TenantSaveDto,
   type TenantOccupancyResult,
-  OpeningBalanceType,
   VoucherType,
-  PartyType,
   type BankMasterDto,
   type BankMicrCodeDto,
   type MicrLookupResult,
@@ -75,52 +69,59 @@ import {
   type TariffBillRegisterMappingDto,
   type TariffBillRegisterMappingSaveDto,
   type BillingPeriodDto,
-  type BillSummaryDto,
   type RegularBillDetailDto,
   type RegularBillPreviewDto,
   type RegularBillSaveDto,
   type BillInterestDetailDto,
   type BillSettlementDto,
   type BulkRegularBillGenerateDto,
-  type BulkRegularBillResult,
   type BillToType,
   type SupplementaryBillDetailDto,
   type SupplementaryBillPreviewDto,
   type SupplementaryBillSaveDto,
-  type SupplementaryBillSummaryDto,
   type VoucherType,
   type VoucherSubType,
   type VoucherSaveDto,
   type VoucherDetailDto,
-  type VoucherSummaryDto,
-  type VoucherPreviewResultDto,
   type MicrLookupResult,
   type OpenBillDto,
   type RegularSettlementInputDto,
-  type SettlementAllocationResultDto,
-  type GeneralBillSettlementDto,
   type ChequePrintDto,
   type VoucherCancelInputDto,
-  type VoucherCancelResultDto,
   type AdjustmentVoucherDto,
   type PettyCashVoucherDto,
   type PartialWaiverInputDto,
-  type PartialWaiverPreviewDto,
-  type PartialWaiverResultDto,
-  type BankRecGridRow,
-  type BankReconciliationStatementDto,
   type BankRecStatus,
   type FdRegisterDto,
   type FdStatus,
   type PropertyRegisterEntryDto,
-  type SinkingFundEntryDto,
   type IFormRegisterDto,
   type IFormShareEntryDto,
   type IFormShareTransferDto,
   type UpcomingFdMaturityDto,
   type TdsRecordDto,
   type TdsChallanDto,
-  type Form16AResultDto,
+  LetterType,
+  CommitteeStatus,
+  type LetterTemplateDto,
+  type GeneratedLetterDto,
+  type GenerateReminderDto,
+  type SaveGeneralLetterDto,
+  type CommitteeMemberDto,
+  type MeetingMinutesDto,
+  type UserDto,
+  type UserSaveDto,
+  type BackupResultDto,
+  type ScheduledBackupConfigDto,
+  type YearEndChecklistDto,
+  type YearEndCloseResultDto,
+  type AuditLogFilterDto,
+  type ReportCatalogEntryDto,
+  type ReportExportResultDto,
+  type ReportId,
+  type ReportPreviewResultDto,
+  type ReportResultDto,
+  type ReportRunPayload,
 } from '@sams/shared-types';
 
 async function invoke<TPayload, TResult>(
@@ -149,6 +150,7 @@ contextBridge.exposeInMainWorld('sams', {
       invoke(IpcChannels.STARTUP_CREATE_SOCIETY, payload),
     openNewFinancialYear: (payload: OpenNewFinancialYearPayload) =>
       invoke(IpcChannels.STARTUP_OPEN_NEW_FINANCIAL_YEAR, payload),
+    closeDatabase: () => invoke(IpcChannels.STARTUP_CLOSE_DATABASE, {}),
     pickOpenDatabase: () => invoke(IpcChannels.STARTUP_PICK_OPEN_DATABASE, {}),
     pickSaveDatabase: (defaultName?: string) =>
       invoke(IpcChannels.STARTUP_PICK_SAVE_DATABASE, { defaultName }),
@@ -160,6 +162,8 @@ contextBridge.exposeInMainWorld('sams', {
         password,
       }),
     logout: () => invoke(IpcChannels.AUTH_LOGOUT, {}),
+    changePassword: (currentPassword: string, newPassword: string) =>
+      invoke(IpcChannels.AUTH_CHANGE_PASSWORD, { currentPassword, newPassword }),
     getSession: (): Promise<IpcResponse<SessionDto>> =>
       invoke<GetSessionPayload, SessionDto>(IpcChannels.AUTH_GET_SESSION, {}),
   },
@@ -621,6 +625,97 @@ contextBridge.exposeInMainWorld('sams', {
     saveChallan: (payload: TdsChallanDto) => invoke(IpcChannels.TDS_SAVE_CHALLAN, payload),
     generateForm16A: (payload: { partyAccountId: string; financialYearId?: string }) =>
       invoke(IpcChannels.TDS_GENERATE_FORM16A, payload),
+  },
+  correspondence: {
+    listTemplates: () =>
+      invoke<Record<string, never>, LetterTemplateDto[]>(
+        IpcChannels.CORRESPONDENCE_LIST_TEMPLATES,
+        {},
+      ),
+    saveTemplate: (payload: LetterTemplateDto) =>
+      invoke(IpcChannels.CORRESPONDENCE_SAVE_TEMPLATE, payload),
+    listDefaulters: (filter?: { minOutstanding?: number; buildingId?: string }) =>
+      invoke(IpcChannels.CORRESPONDENCE_LIST_DEFAULTERS, filter ?? {}),
+    generateReminder: (payload: GenerateReminderDto) =>
+      invoke(IpcChannels.CORRESPONDENCE_GENERATE_REMINDER, payload),
+    getGeneratedLetter: (id: string) =>
+      invoke<{ id: string }, GeneratedLetterDto>(IpcChannels.CORRESPONDENCE_GET_GENERATED, { id }),
+    listGeneratedLetters: (filter?: { letterType?: LetterType; memberId?: string }) =>
+      invoke(IpcChannels.CORRESPONDENCE_LIST_GENERATED, filter ?? {}),
+    saveGeneralLetter: (payload: SaveGeneralLetterDto) =>
+      invoke(IpcChannels.CORRESPONDENCE_SAVE_GENERAL_LETTER, payload),
+    listCommittee: (filter?: { status?: CommitteeStatus; activeOnly?: boolean }) =>
+      invoke(IpcChannels.CORRESPONDENCE_COMMITTEE_LIST, filter ?? {}),
+    saveCommittee: (payload: CommitteeMemberDto) =>
+      invoke(IpcChannels.CORRESPONDENCE_COMMITTEE_SAVE, payload),
+    deleteCommittee: (id: string) =>
+      invoke<{ id: string }, { deleted: boolean }>(IpcChannels.CORRESPONDENCE_COMMITTEE_DELETE, {
+        id,
+      }),
+    listMinutes: () =>
+      invoke<Record<string, never>, MeetingMinutesDto[]>(IpcChannels.CORRESPONDENCE_MINUTES_LIST, {}),
+    getMinutes: (id: string) =>
+      invoke<{ id: string }, MeetingMinutesDto>(IpcChannels.CORRESPONDENCE_MINUTES_GET, { id }),
+    saveMinutes: (payload: MeetingMinutesDto) =>
+      invoke(IpcChannels.CORRESPONDENCE_MINUTES_SAVE, payload),
+    deleteMinutes: (id: string) =>
+      invoke<{ id: string }, { deleted: boolean }>(IpcChannels.CORRESPONDENCE_MINUTES_DELETE, {
+        id,
+      }),
+    renderMinutesPrint: (id: string) =>
+      invoke<{ id: string }, { html: string }>(IpcChannels.CORRESPONDENCE_MINUTES_RENDER_PRINT, {
+        id,
+      }),
+  },
+  admin: {
+    listUsers: () => invoke<Record<string, never>, UserDto[]>(IpcChannels.ADMIN_LIST_USERS, {}),
+    saveUser: (payload: UserSaveDto) => invoke(IpcChannels.ADMIN_SAVE_USER, payload),
+    resetPassword: (payload: { userId: string; newPassword: string }) =>
+      invoke(IpcChannels.ADMIN_RESET_PASSWORD, payload),
+    backup: (targetPath?: string) =>
+      invoke<{ targetPath?: string }, BackupResultDto>(IpcChannels.ADMIN_BACKUP, {
+        targetPath,
+      }),
+    restore: (payload: { backupPath: string; targetPath?: string }) =>
+      invoke(IpcChannels.ADMIN_RESTORE, payload),
+    getScheduledBackup: () =>
+      invoke<Record<string, never>, { config: ScheduledBackupConfigDto }>(
+        IpcChannels.ADMIN_GET_SCHEDULED_BACKUP,
+        {},
+      ),
+    scheduleBackup: (payload: ScheduledBackupConfigDto) =>
+      invoke(IpcChannels.ADMIN_SCHEDULE_BACKUP, payload),
+    yearEndChecklist: () =>
+      invoke<Record<string, never>, YearEndChecklistDto>(IpcChannels.ADMIN_YEAR_END_CHECKLIST, {}),
+    yearEndClose: () =>
+      invoke<Record<string, never>, YearEndCloseResultDto>(IpcChannels.ADMIN_YEAR_END_CLOSE, {}),
+    reopenYear: (confirmationText: string) =>
+      invoke<{ confirmationText: string }, { isReadOnly: boolean }>(IpcChannels.ADMIN_REOPEN_YEAR, {
+        confirmationText,
+      }),
+    listAuditLog: (filter?: AuditLogFilterDto) =>
+      invoke(IpcChannels.ADMIN_LIST_AUDIT_LOG, filter ?? {}),
+    exportAuditLog: (filter?: AuditLogFilterDto) =>
+      invoke(IpcChannels.ADMIN_EXPORT_AUDIT_LOG, filter ?? {}),
+  },
+  report: {
+    list: () => invoke<Record<string, never>, ReportCatalogEntryDto[]>(IpcChannels.REPORT_LIST, {}),
+    run: (payload: ReportRunPayload) =>
+      invoke<ReportRunPayload, ReportResultDto>(IpcChannels.REPORT_RUN, payload),
+    preview: (payload: ReportRunPayload) =>
+      invoke<ReportRunPayload, ReportPreviewResultDto>(IpcChannels.REPORT_PREVIEW, payload),
+    exportCsv: (payload: ReportRunPayload & { targetPath?: string }) =>
+      invoke<ReportRunPayload & { targetPath?: string }, ReportExportResultDto>(
+        IpcChannels.REPORT_EXPORT_CSV,
+        payload,
+      ),
+    exportPdf: (payload: ReportRunPayload & { targetPath?: string }) =>
+      invoke<ReportRunPayload & { targetPath?: string }, ReportExportResultDto>(
+        IpcChannels.REPORT_EXPORT_PDF,
+        payload,
+      ),
+    print: (payload: ReportRunPayload) =>
+      invoke<ReportRunPayload, ReportPreviewResultDto>(IpcChannels.REPORT_PRINT, payload),
   },
 });
 

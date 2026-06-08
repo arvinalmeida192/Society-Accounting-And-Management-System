@@ -18,6 +18,7 @@ import type {
 } from '@sams/shared-types';
 import { createMemberSubsidiaryLedger } from './chart-of-accounts-service.js';
 import { syncIFormOnDisposal, syncIFormOnMemberChange } from './statutory-register-service.js';
+import { assertWritable } from './assert-writable.js';
 
 function decimalToNumber(value: Prisma.Decimal | number | null | undefined): number | null {
   if (value == null) return null;
@@ -329,6 +330,7 @@ export async function saveMemberIdentification(
   dto: MemberIdentificationDto,
   actorId: string,
 ): Promise<MemberDto> {
+  await assertWritable(client);
   if (!dto.memberName?.trim()) {
     throw Object.assign(new Error('Member name is required.'), { code: 'VALIDATION_ERROR' });
   }
@@ -417,6 +419,7 @@ export async function saveMemberPersonal(
   dto: MemberPersonalDto,
   actorId: string,
 ): Promise<MemberDto> {
+  await assertWritable(client);
   const record = await client.member.update({
     where: { id: dto.id },
     data: {
@@ -453,6 +456,7 @@ export async function saveMemberAddress(
   dto: MemberAddressDto,
   actorId: string,
 ): Promise<MemberDto> {
+  await assertWritable(client);
   const record = await client.member.update({
     where: { id: dto.id },
     data: {
@@ -477,6 +481,7 @@ export async function saveMemberDependents(
   rows: Omit<MemberDependentDto, keyof import('@sams/shared-types').AuditFieldsDto | 'memberId'>[],
   actorId: string,
 ): Promise<MemberDependentDto[]> {
+  await assertWritable(client);
   await client.$transaction(async (tx) => {
     await tx.memberDependent.deleteMany({ where: { memberId } });
     for (const row of rows) {
@@ -508,6 +513,7 @@ export async function saveMemberNominees(
   rows: Omit<MemberNomineeDto, keyof import('@sams/shared-types').AuditFieldsDto | 'memberId'>[],
   actorId: string,
 ): Promise<MemberNomineeDto[]> {
+  await assertWritable(client);
   await client.$transaction(async (tx) => {
     await tx.memberNominee.deleteMany({ where: { memberId } });
     for (const row of rows) {
@@ -538,6 +544,7 @@ export async function saveMemberVehicles(
   rows: Omit<MemberVehicleDto, keyof import('@sams/shared-types').AuditFieldsDto | 'memberId'>[],
   actorId: string,
 ): Promise<MemberVehicleDto[]> {
+  await assertWritable(client);
   await client.$transaction(async (tx) => {
     await tx.memberVehicle.deleteMany({ where: { memberId } });
     for (const row of rows) {
@@ -565,6 +572,7 @@ export async function saveMemberShares(
   rows: Omit<MemberShareDto, keyof import('@sams/shared-types').AuditFieldsDto | 'memberId'>[],
   actorId: string,
 ): Promise<MemberShareDto[]> {
+  await assertWritable(client);
   await client.$transaction(async (tx) => {
     await tx.memberShare.deleteMany({ where: { memberId } });
     for (const row of rows) {
@@ -594,6 +602,7 @@ export async function saveMemberHousingLoans(
   rows: Omit<MemberHousingLoanDto, keyof import('@sams/shared-types').AuditFieldsDto | 'memberId'>[],
   actorId: string,
 ): Promise<MemberHousingLoanDto[]> {
+  await assertWritable(client);
   await client.$transaction(async (tx) => {
     await tx.memberHousingLoan.deleteMany({ where: { memberId } });
     for (const row of rows) {
@@ -623,6 +632,7 @@ export async function disposeMember(
   reason: string | undefined,
   actorId: string,
 ): Promise<MemberDto> {
+  await assertWritable(client);
   const record = await client.$transaction(async (tx) => {
     const member = await tx.member.findUniqueOrThrow({
       where: { id },
@@ -665,6 +675,7 @@ export async function uploadMemberPhoto(
   photosDir: string,
   actorId: string,
 ): Promise<{ photographPath: string }> {
+  await assertWritable(client);
   mkdirSync(photosDir, { recursive: true });
   const destPath = join(photosDir, `${memberId}-${basename(sourcePath)}`);
   copyFileSync(sourcePath, destPath);

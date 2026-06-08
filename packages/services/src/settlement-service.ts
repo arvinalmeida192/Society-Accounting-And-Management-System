@@ -49,9 +49,53 @@ function sumSettled(bill: BillWithSettlements): {
   return { principal, interest, serviceTax, total: principal + interest + serviceTax };
 }
 
-function getOutstanding(bill: BillWithSettlements): number {
+export interface BillOutstandingBreakdown {
+  principal: number;
+  interest: number;
+  serviceTax: number;
+  total: number;
+}
+
+/** Rebate-aware outstanding split; bucket sum never exceeds billAmount - settled. */
+export function computeBillOutstanding(bill: BillWithSettlements): BillOutstandingBreakdown {
   const settled = sumSettled(bill);
-  return Math.max(0, toNumber(bill.billAmount) - settled.total);
+  const billOutstanding = Math.max(0, toNumber(bill.billAmount) - settled.total);
+
+  if (billOutstanding <= 0.01) {
+    return { principal: 0, interest: 0, serviceTax: 0, total: 0 };
+  }
+
+  const rawServiceTax = Math.max(0, toNumber(bill.serviceTaxAmount) - settled.serviceTax);
+  const rawInterest = Math.max(0, toNumber(bill.interestAmount) - settled.interest);
+  const rawPrincipal = Math.max(
+    0,
+    toNumber(bill.totalCharges) + toNumber(bill.adjustmentAmount) - settled.principal,
+  );
+  const totalRaw = rawServiceTax + rawInterest + rawPrincipal;
+
+  if (totalRaw <= 0.01) {
+    return { principal: billOutstanding, interest: 0, serviceTax: 0, total: billOutstanding };
+  }
+
+  if (totalRaw <= billOutstanding + 0.01) {
+    return {
+      principal: rawPrincipal,
+      interest: rawInterest,
+      serviceTax: rawServiceTax,
+      total: billOutstanding,
+    };
+  }
+
+  const scale = billOutstanding / totalRaw;
+  const principal = Money.fromRupees(rawPrincipal * scale).toRupees();
+  const interest = Money.fromRupees(rawInterest * scale).toRupees();
+  const serviceTax = Money.fromRupees(billOutstanding - principal - interest).toRupees();
+
+  return { principal, interest, serviceTax, total: billOutstanding };
+}
+
+function getOutstanding(bill: BillWithSettlements): number {
+  return computeBillOutstanding(bill).total;
 }
 
 type SettlementBucket = 'serviceTax' | 'interest' | 'principal';
@@ -95,14 +139,11 @@ export function allocateToBill(
   interestAllocated: number;
   serviceTaxAllocated: number;
 } {
-  const settled = sumSettled(bill);
+  const breakdown = computeBillOutstanding(bill);
   const outstanding: Record<SettlementBucket, number> = {
-    serviceTax: Math.max(0, toNumber(bill.serviceTaxAmount) - settled.serviceTax),
-    interest: Math.max(0, toNumber(bill.interestAmount) - settled.interest),
-    principal: Math.max(
-      0,
-      toNumber(bill.totalCharges) + toNumber(bill.adjustmentAmount) - settled.principal,
-    ),
+    serviceTax: breakdown.serviceTax,
+    interest: breakdown.interest,
+    principal: breakdown.principal,
   };
 
   let remaining = amount;
@@ -153,6 +194,43 @@ export async function getOpenBillsForMember(
       };
     })
     .filter((row) => row.outstanding > 0.01);
+}
+
+export interface MemberArrearsBreakdown {
+  principal: number;
+  interest: number;
+  serviceTax: number;
+}
+
+/** Outstanding principal/interest/ST split for year-end carry-forward (GAP-038). */
+export async function computeMemberArrearsBreakdown(
+  client: PrismaClient,
+  memberId: string,
+  billType: 'REGULAR' | 'SUPPLEMENTARY',
+): Promise<MemberArrearsBreakdown> {
+  const bills = await client.bill.findMany({
+    where: {
+      memberId,
+      billType: billType === 'REGULAR' ? BillType.REGULAR : BillType.SUPPLEMENTARY,
+      status: 'POSTED',
+    },
+    include: { settlements: true },
+  });
+
+  let principal = 0;
+  let interest = 0;
+  let serviceTax = 0;
+
+  for (const bill of bills) {
+    const breakdown = computeBillOutstanding(bill);
+    if (breakdown.total <= 0.01) continue;
+
+    principal += breakdown.principal;
+    interest += breakdown.interest;
+    serviceTax += breakdown.serviceTax;
+  }
+
+  return { principal, interest, serviceTax };
 }
 
 async function loadEffectiveSequenceLines(

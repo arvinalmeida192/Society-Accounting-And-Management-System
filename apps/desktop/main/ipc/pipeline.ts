@@ -1,6 +1,7 @@
 import { randomUUID } from 'node:crypto';
 import type { IpcMainInvokeEvent } from 'electron';
 import {
+  AuditAction,
   createErrorResponse,
   createSuccessResponse,
   ErrorCodes,
@@ -8,6 +9,7 @@ import {
   type IpcResponse,
   PermissionAction,
 } from '@sams/shared-types';
+import { getAuditService } from '../audit/audit-manager.js';
 import type { SessionState } from '../session/session-manager.js';
 
 export interface IpcPipelineContext {
@@ -27,8 +29,40 @@ export interface IpcPipelineOptions<TPayload> {
   action: PermissionAction;
   requireSession?: boolean;
   requireDatabase?: boolean;
+  /** Allow mutation when financial year is closed (e.g. backup, reopen year). */
+  allowWhenReadOnly?: boolean;
   validatePayload?: (payload: TPayload) => void;
   handler: IpcHandler<TPayload, unknown>;
+}
+
+function toAuditAction(action: PermissionAction): AuditAction | null {
+  switch (action) {
+    case PermissionAction.CREATE:
+      return AuditAction.CREATE;
+    case PermissionAction.UPDATE:
+      return AuditAction.UPDATE;
+    case PermissionAction.DELETE:
+      return AuditAction.DELETE;
+    case PermissionAction.EXPORT:
+    case PermissionAction.PRINT:
+      return AuditAction.UPDATE;
+    default:
+      return null;
+  }
+}
+
+const SENSITIVE_KEYS = new Set(['password', 'newPassword', 'currentPassword']);
+
+function sanitizeAuditPayload(payload: unknown): unknown {
+  if (payload == null || typeof payload !== 'object' || Array.isArray(payload)) {
+    return payload;
+  }
+  const record = payload as Record<string, unknown>;
+  const sanitized: Record<string, unknown> = {};
+  for (const [key, value] of Object.entries(record)) {
+    sanitized[key] = SENSITIVE_KEYS.has(key) ? '[REDACTED]' : value;
+  }
+  return sanitized;
 }
 
 function hasPermission(session: SessionState, resource: string, action: PermissionAction): boolean {
@@ -60,7 +94,12 @@ export async function withIpcPipeline<TPayload, TResult>(
       });
     }
 
-    if (session.isReadOnly && options.action !== PermissionAction.READ) {
+    if (
+      session.isReadOnly &&
+      options.action !== PermissionAction.READ &&
+      options.action !== PermissionAction.EXPORT &&
+      !options.allowWhenReadOnly
+    ) {
       return createErrorResponse(requestId, {
         code: ErrorCodes.YEAR_CLOSED,
         message: 'Financial year is closed for modifications',
@@ -82,6 +121,21 @@ export async function withIpcPipeline<TPayload, TResult>(
       { event, session, resource: options.resource, action: options.action },
       request.payload,
     )) as TResult;
+
+    const auditAction = toAuditAction(options.action);
+    if (session.userId && auditAction) {
+      void getAuditService()
+        .logMutation({
+          userId: session.userId,
+          action: auditAction,
+          entityName: options.resource,
+          entityId: requestId,
+          newValue: sanitizeAuditPayload(request.payload),
+        })
+        .catch((error) => {
+          console.error('Audit log write failed:', error);
+        });
+    }
 
     return createSuccessResponse(requestId, data);
   } catch (error) {

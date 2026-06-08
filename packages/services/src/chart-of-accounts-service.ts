@@ -25,6 +25,7 @@ import {
 } from './account-validation-service.js';
 import { getClosingBalance } from './ledger-balance-service.js';
 import { canArchiveAccount } from './reference-guard-service.js';
+import { assertWritable } from './assert-writable.js';
 
 function decimalToNumber(value: Prisma.Decimal | number | null | undefined): number {
   if (value == null) return 0;
@@ -196,6 +197,7 @@ export async function saveAccountGroup(
   dto: AccountGroupDto,
   actorId: string,
 ): Promise<AccountGroupDto> {
+  await assertWritable(client);
   const natureError = validateGroupNature(dto.categoryId, dto.nature);
   if (natureError) {
     throw Object.assign(new Error(natureError), { fieldErrors: { nature: natureError } });
@@ -241,6 +243,7 @@ export async function saveAccountSubgroup(
   dto: AccountSubgroupDto,
   actorId: string,
 ): Promise<AccountSubgroupDto> {
+  await assertWritable(client);
   if (!dto.subgroupName?.trim()) {
     throw Object.assign(new Error('Subgroup name is required.'), {
       fieldErrors: { subgroupName: 'Subgroup name is required.' },
@@ -316,6 +319,7 @@ export async function saveAccountMaster(
   dto: AccountMasterSaveDto,
   actorId: string,
 ): Promise<AccountMasterDto> {
+  await assertWritable(client);
   const subgroup = await client.accountSubgroup.findUniqueOrThrow({
     where: { id: dto.subgroupId },
     include: { group: true },
@@ -396,6 +400,7 @@ export async function archiveAccountMaster(
   actorId: string,
   financialYearId?: string,
 ): Promise<ArchiveAccountResult> {
+  await assertWritable(client);
   const guard = await canArchiveAccount(client, id, financialYearId);
   if (!guard.allowed) {
     return {
@@ -541,6 +546,7 @@ export async function createMemberSubsidiaryLedger(
   member: { id: string; memberName: string; unitNo: string },
   actorId: string,
 ): Promise<AccountMasterDto | null> {
+  await assertWritable(client);
   const existing = await client.accountMaster.findFirst({
     where: { memberSubsidiaryId: member.id },
   });

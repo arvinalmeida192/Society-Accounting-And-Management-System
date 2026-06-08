@@ -77,8 +77,28 @@ export const sessionManager = {
     };
   },
 
+  clearDatabase(): void {
+    currentSession = {
+      ...currentSession,
+      sessionToken: null,
+      databasePath: null,
+      financialYearId: null,
+      fyLabel: null,
+      societyName: null,
+      isReadOnly: false,
+    };
+  },
+
   clear(): void {
     currentSession = emptySession();
+  },
+
+  updateReadOnly(isReadOnly: boolean): void {
+    currentSession = { ...currentSession, isReadOnly };
+  },
+
+  updateFinancialYear(financialYearId: string, fyLabel: string): void {
+    currentSession = { ...currentSession, financialYearId, fyLabel };
   },
 
   toDto(): SessionDto {

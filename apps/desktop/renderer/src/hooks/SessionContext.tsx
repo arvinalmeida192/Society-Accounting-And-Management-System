@@ -14,7 +14,13 @@ interface SessionContextValue {
   session: SessionDto | null;
   loading: boolean;
   bootError: string | null;
+  /** Set synchronously after openDatabase before React session state catches up. */
+  pendingDatabasePath: string | null;
+  /** Route to navigate to after the next successful login. */
+  postLoginRoute: string | null;
   refreshSession: () => Promise<SessionDto | null>;
+  markDatabaseOpen: (path: string) => void;
+  setPostLoginRoute: (route: string | null) => void;
 }
 
 const SessionContext = createContext<SessionContextValue | null>(null);
@@ -23,6 +29,12 @@ export function SessionProvider({ children }: { children: ReactNode }): React.Re
   const [session, setSession] = useState<SessionDto | null>(null);
   const [loading, setLoading] = useState(true);
   const [bootError, setBootError] = useState<string | null>(null);
+  const [pendingDatabasePath, setPendingDatabasePath] = useState<string | null>(null);
+  const [postLoginRoute, setPostLoginRoute] = useState<string | null>(null);
+
+  const markDatabaseOpen = useCallback((path: string) => {
+    setPendingDatabasePath(path);
+  }, []);
 
   const refreshSession = useCallback(async (): Promise<SessionDto | null> => {
     try {
@@ -33,6 +45,9 @@ export function SessionProvider({ children }: { children: ReactNode }): React.Re
       }
       const data = await fetchSession();
       setSession(data);
+      if (data?.databasePath) {
+        setPendingDatabasePath(null);
+      }
       setBootError(null);
       return data;
     } catch (error) {
@@ -49,8 +64,17 @@ export function SessionProvider({ children }: { children: ReactNode }): React.Re
   }, [refreshSession]);
 
   const value = useMemo(
-    () => ({ session, loading, bootError, refreshSession }),
-    [session, loading, bootError, refreshSession],
+    () => ({
+      session,
+      loading,
+      bootError,
+      pendingDatabasePath,
+      postLoginRoute,
+      refreshSession,
+      markDatabaseOpen,
+      setPostLoginRoute,
+    }),
+    [session, loading, bootError, pendingDatabasePath, postLoginRoute, refreshSession, markDatabaseOpen],
   );
 
   return <SessionContext.Provider value={value}>{children}</SessionContext.Provider>;

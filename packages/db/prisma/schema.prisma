@@ -1,4 +1,4 @@
-// SAMS Database Schema — Phases 1–15
+// SAMS Database Schema — Phases 1–17
 
 generator client {
   provider = "prisma-client-js"
@@ -246,7 +246,7 @@ model SystemMeta {
   closedAt          DateTime?
   closedById        String?
   yearStorageMode   YearStorageMode @default(SEPARATE_FILES)
-  closedBy          User?           @relation("ClosedByUser", fields: [closedById], references: [id])
+  closedBy          User?           @relation("ClosedByUser", fields: [closedById], references: [id], onDelete: SetNull)
 
   @@map("system_meta")
 }
@@ -292,6 +292,7 @@ model AuditLog {
   user         User        @relation(fields: [userId], references: [id])
 
   @@index([timestamp])
+  @@index([userId, timestamp])
   @@index([entityName, entityId])
   @@map("audit_logs")
 }
@@ -349,6 +350,9 @@ model FinancialYear {
   iFormRegisters             IFormRegister[]
   tdsRecords                 TdsRecord[]
   tdsChallans                TdsChallan[]
+  generatedLetters           GeneratedLetter[]
+  committeeMembers           CommitteeMember[]
+  meetingMinutes             MeetingMinutes[]
   createdAt          DateTime        @default(now())
   createdBy          String
   updatedAt          DateTime        @updatedAt
@@ -643,12 +647,13 @@ model Building {
   numberOfFloors  Int           @default(0)
   deletedAt       DateTime?
   deletedById     String?
-  wings           Wing[]
-  units           Unit[]
-  createdAt       DateTime      @default(now())
-  createdBy       String
-  updatedAt       DateTime      @updatedAt
-  updatedBy       String
+  wings             Wing[]
+  units             Unit[]
+  committeeMembers  CommitteeMember[]
+  createdAt         DateTime      @default(now())
+  createdBy         String
+  updatedAt         DateTime      @updatedAt
+  updatedBy         String
 
   @@unique([shortName])
   @@map("buildings")
@@ -662,11 +667,12 @@ model Wing {
   fullName   String
   deletedAt  DateTime?
   deletedById String?
-  units      Unit[]
-  createdAt  DateTime  @default(now())
-  createdBy  String
-  updatedAt  DateTime  @updatedAt
-  updatedBy  String
+  units             Unit[]
+  committeeMembers  CommitteeMember[]
+  createdAt         DateTime  @default(now())
+  createdBy         String
+  updatedAt         DateTime  @updatedAt
+  updatedBy         String
 
   @@unique([buildingId, shortName])
   @@map("wings")
@@ -753,12 +759,13 @@ model Unit {
   landValue                Decimal?
   deletedAt                DateTime?
   deletedById              String?
-  members                  Member[]
-  tenants                  Tenant[]
-  createdAt                DateTime         @default(now())
-  createdBy                String
-  updatedAt                DateTime         @updatedAt
-  updatedBy                String
+  members            Member[]
+  tenants            Tenant[]
+  committeeMembers   CommitteeMember[]
+  createdAt          DateTime         @default(now())
+  createdBy          String
+  updatedAt          DateTime         @updatedAt
+  updatedBy          String
 
   @@unique([buildingId, wingId, unitNo])
   @@index([serialNo])
@@ -864,6 +871,9 @@ model Member {
   propertyRegisterEntries      PropertyRegisterEntry[]
   sinkingFundEntries           SinkingFundRegisterEntry[]
   iFormRegister                IFormRegister?
+  generatedLetters             GeneratedLetter[]
+  committeeMemberships         CommitteeMember[]
+  meetingAttendances           MeetingAttendee[]
   createdAt                    DateTime  @default(now())
   createdBy                    String
   updatedAt                    DateTime  @updatedAt
@@ -1592,4 +1602,124 @@ model TdsRecord {
   @@index([partyAccountId])
   @@index([challanId])
   @@map("tds_records")
+}
+
+enum LetterType {
+  GENERAL_REMINDER
+  MCACT_101
+  CUSTOM
+}
+
+enum CommitteeStatus {
+  ACTIVE
+  INACTIVE
+}
+
+model LetterTemplate {
+  id               String            @id @default(cuid())
+  letterType       LetterType
+  name             String
+  bodyTemplate     String
+  isActive         Boolean           @default(true)
+  generatedLetters GeneratedLetter[]
+  createdAt        DateTime          @default(now())
+  createdBy        String
+  updatedAt        DateTime          @updatedAt
+  updatedBy        String
+
+  @@map("letter_templates")
+}
+
+model GeneratedLetter {
+  id               String        @id @default(cuid())
+  financialYearId  String
+  financialYear    FinancialYear @relation(fields: [financialYearId], references: [id])
+  letterTemplateId String?
+  letterTemplate   LetterTemplate? @relation(fields: [letterTemplateId], references: [id])
+  memberId         String?
+  member           Member?       @relation(fields: [memberId], references: [id])
+  letterType       LetterType
+  referenceNo      String        @unique
+  issueDate        DateTime
+  balanceAsOnDate  DateTime
+  amountDue        Decimal       @default(0)
+  renderedHtml     String
+  pdfPath          String?
+  subject          String?
+  createdAt        DateTime      @default(now())
+  createdBy        String
+  updatedAt        DateTime      @updatedAt
+  updatedBy        String
+
+  @@index([financialYearId])
+  @@index([memberId])
+  @@index([letterType])
+  @@map("generated_letters")
+}
+
+model CommitteeMember {
+  id              String          @id @default(cuid())
+  financialYearId String
+  financialYear   FinancialYear   @relation(fields: [financialYearId], references: [id])
+  effectiveDate   DateTime
+  termEndsOn      DateTime?
+  buildingId      String?
+  building        Building?       @relation(fields: [buildingId], references: [id])
+  wingId          String?
+  wing            Wing?           @relation(fields: [wingId], references: [id])
+  unitId          String?
+  unit            Unit?           @relation(fields: [unitId], references: [id])
+  memberId        String
+  member          Member          @relation(fields: [memberId], references: [id])
+  designation     String
+  status          CommitteeStatus @default(ACTIVE)
+  createdAt       DateTime        @default(now())
+  createdBy       String
+  updatedAt       DateTime        @updatedAt
+  updatedBy       String
+
+  @@index([financialYearId])
+  @@index([memberId])
+  @@index([status])
+  @@map("committee_members")
+}
+
+model MeetingMinutes {
+  id                String             @id @default(cuid())
+  financialYearId   String
+  financialYear     FinancialYear      @relation(fields: [financialYearId], references: [id])
+  meetingNo         Int
+  meetingDate       DateTime
+  meetingTime       String?
+  natureOfMeeting   String?
+  resolutionDetails String?
+  commentsNotings   String?
+  attendees         MeetingAttendee[]
+  createdAt         DateTime           @default(now())
+  createdBy         String
+  updatedAt         DateTime           @updatedAt
+  updatedBy         String
+
+  @@unique([financialYearId, meetingNo])
+  @@index([financialYearId])
+  @@map("meeting_minutes")
+}
+
+model MeetingAttendee {
+  id           String         @id @default(cuid())
+  meetingId    String
+  meeting      MeetingMinutes @relation(fields: [meetingId], references: [id], onDelete: Cascade)
+  memberId     String
+  member       Member         @relation(fields: [memberId], references: [id])
+  designation  String?
+  attended     Boolean        @default(true)
+  comments     String?
+  createdAt    DateTime       @default(now())
+  createdBy    String
+  updatedAt    DateTime       @updatedAt
+  updatedBy    String
+
+  @@index([meetingId])
+  @@index([memberId])
+  @@map("meeting_attendees")
 }

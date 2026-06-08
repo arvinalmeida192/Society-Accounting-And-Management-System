@@ -4,6 +4,7 @@ import type {
   TenantOccupancyResult,
   TenantSaveDto,
 } from '@sams/shared-types';
+import { assertWritable } from './assert-writable.js';
 
 function decimalToNumber(value: Prisma.Decimal | number | null | undefined): number | null {
   if (value == null) return null;
@@ -95,6 +96,7 @@ export async function saveTenant(
   dto: TenantSaveDto,
   actorId: string,
 ): Promise<TenantDto> {
+  await assertWritable(client);
   if (!dto.tenantName?.trim()) {
     throw Object.assign(new Error('Tenant name is required.'), { code: 'VALIDATION_ERROR' });
   }
@@ -153,6 +155,7 @@ export async function archiveTenant(
   id: string,
   actorId: string,
 ): Promise<TenantDto> {
+  await assertWritable(client);
   const record = await client.tenant.update({
     where: { id },
     data: {

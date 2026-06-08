@@ -31,4 +31,7 @@ export async function ensureSocietyConfiguration(client: PrismaClient): Promise<
 
   const { seedDefaultTariffConfiguration } = await import('./tariff-seed.js');
   await seedDefaultTariffConfiguration(client);
+
+  const { seedLetterTemplates } = await import('./letter-template-seed.js');
+  await seedLetterTemplates(client);
 }

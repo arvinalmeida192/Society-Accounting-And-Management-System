@@ -4,6 +4,7 @@ import { join } from 'node:path';
 import { AppConfigStore } from './config/app-config.js';
 import { closeDatabase } from './database/database-manager.js';
 import { registerIpcHandlers } from './ipc/register-handlers.js';
+import { restartScheduledBackupJob } from './scheduled-backup-job.js';
 import { sessionManager } from './session/session-manager.js';
 
 let appConfig: AppConfigStore;
@@ -84,6 +85,7 @@ app.whenReady().then(() => {
   appConfig = new AppConfigStore(app.getPath('userData'));
   buildApplicationMenu();
   registerIpcHandlers(appConfig);
+  restartScheduledBackupJob(appConfig);
   createWindow();
 
   app.on('activate', () => {

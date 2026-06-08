@@ -64,3 +64,27 @@ export async function loginUser(
     permissions: resolvePermissionKeys(updated.role as UserDto['role']),
   };
 }
+
+export async function changePassword(
+  client: PrismaClient,
+  userId: string,
+  currentPassword: string,
+  newPassword: string,
+): Promise<{ success: boolean }> {
+  if (!newPassword || newPassword.length < 8) {
+    throw new AuthError(ErrorCodes.VALIDATION_ERROR, 'New password must be at least 8 characters.');
+  }
+
+  const user = await client.user.findUniqueOrThrow({ where: { id: userId } });
+  const valid = await verifyPassword(currentPassword, user.passwordHash);
+  if (!valid) {
+    throw new AuthError(ErrorCodes.INVALID_CREDENTIALS, 'Current password is incorrect.');
+  }
+
+  await client.user.update({
+    where: { id: userId },
+    data: { passwordHash: await hashPassword(newPassword) },
+  });
+
+  return { success: true };
+}

@@ -19,6 +19,7 @@ import {
   type SupplementaryBillSaveDto,
   type SupplementaryBillSummaryDto,
 } from '@sams/shared-types';
+import { assertWritable } from './assert-writable.js';
 import { parseIsoDate } from './financial-year.js';
 import { computeArrears, computeSupplementaryArrears } from './arrears-service.js';
 import {
@@ -514,22 +515,28 @@ export async function saveRegularBill(
   dto: RegularBillSaveDto,
   actorId: string,
 ): Promise<RegularBillDetailDto> {
+  await assertWritable(client);
   await assertNotDuplicateBill(client, dto.memberId, dto.billForPeriodKey, dto.id);
 
   const draft = await buildRegularBillDraft(client, dto);
-  const financialYearId = await getActiveFinancialYearId(client);
 
-  const maxSerial = await client.bill.aggregate({ _max: { billSerialNo: true } });
-  const billSerialNo = (maxSerial._max.billSerialNo ?? 0) + 1;
+  return client.$transaction(async (tx) => {
+    const db = tx as PrismaClient;
+    const financialYearId = await getActiveFinancialYearId(db);
 
-  const systemBillNo = await numberSeriesService.next(
-    client,
-    SeriesType.RB,
-    financialYearId,
-    actorId,
-  );
+    const maxSerial = await tx.bill.aggregate({ _max: { billSerialNo: true } });
+    const billSerialNo = (maxSerial._max.billSerialNo ?? 0) + 1;
 
-  return persistBill(client, draft, actorId, financialYearId, systemBillNo, billSerialNo);
+    const systemBillNo = await numberSeriesService.next(
+      db,
+      SeriesType.RB,
+      financialYearId,
+      actorId,
+      tx,
+    );
+
+    return persistBill(db, draft, actorId, financialYearId, systemBillNo, billSerialNo);
+  });
 }
 
 export async function listRegularBills(
@@ -613,6 +620,7 @@ export async function generateBulkRegular(
   dto: BulkRegularBillGenerateDto,
   actorId: string,
 ): Promise<BulkRegularBillResult> {
+  await assertWritable(client);
   const period = await client.billingPeriodCalendar.findFirst({
     where: { periodKey: dto.billForPeriodKey },
   });
@@ -631,9 +639,13 @@ export async function generateBulkRegular(
 
   const billIds: string[] = [];
 
+  const parameters = await client.societyParameters.findFirst();
+  const configuredStart = dto.startingBillNo ?? parameters?.bulkBillStartingNumber ?? 1;
+
   await client.$transaction(async (tx) => {
-    const financialYearId = await getActiveFinancialYearId(client);
-    let serial = (await tx.bill.aggregate({ _max: { billSerialNo: true } }))._max.billSerialNo ?? 0;
+    const financialYearId = await getActiveFinancialYearId(tx as PrismaClient);
+    const maxSerial = (await tx.bill.aggregate({ _max: { billSerialNo: true } }))._max.billSerialNo ?? 0;
+    let serial = Math.max(maxSerial, configuredStart - 1);
 
     for (const member of members) {
       const duplicate = await tx.bill.findFirst({
@@ -1298,6 +1310,7 @@ export async function saveSupplementaryBill(
   dto: SupplementaryBillSaveDto,
   actorId: string,
 ): Promise<SupplementaryBillDetailDto> {
+  await assertWritable(client);
   await assertNotDuplicateSupplementaryBill(client, {
     billToType: dto.billToType,
     memberId: dto.memberId,

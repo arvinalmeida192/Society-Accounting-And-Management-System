@@ -5,6 +5,7 @@ import { fileURLToPath } from 'node:url';
 import { promisify } from 'node:util';
 import type { PrismaClient } from '@prisma/client';
 import { createPrismaClient, disconnectPrisma, enableWalMode } from '@sams/db';
+import { bindAuditService, clearAuditService } from '../audit/audit-manager.js';
 
 const execFileAsync = promisify(execFile);
 
@@ -74,6 +75,7 @@ export async function connectDatabase(dbPath: string): Promise<PrismaClient> {
 
   activeClient = client;
   activePath = dbPath;
+  bindAuditService(client);
   return client;
 }
 
@@ -87,11 +89,30 @@ export async function createEmptyDatabaseFile(dbPath: string): Promise<PrismaCli
   return connectDatabase(dbPath);
 }
 
+/** Validate or read a DB file without changing the active session connection. */
+export async function withEphemeralClient<T>(
+  dbPath: string,
+  fn: (client: PrismaClient) => Promise<T>,
+): Promise<T> {
+  if (!existsSync(dbPath)) {
+    throw new Error(`Database file not found: ${dbPath}`);
+  }
+
+  const client = createPrismaClient(toDatabaseUrl(dbPath));
+  try {
+    await enableWalMode(client);
+    return await fn(client);
+  } finally {
+    await client.$disconnect();
+  }
+}
+
 export async function closeDatabase(): Promise<void> {
   if (activeClient) {
     await activeClient.$disconnect();
     activeClient = null;
     activePath = null;
   }
+  clearAuditService();
   await disconnectPrisma();
 }

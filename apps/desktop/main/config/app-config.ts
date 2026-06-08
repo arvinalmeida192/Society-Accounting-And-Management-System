@@ -7,6 +7,12 @@ const CONFIG_FILE = 'app-config.json';
 const defaultConfig = (): AppConfigDto => ({
   recentDatabases: [],
   explorerExpandedNodes: [],
+  scheduledBackup: {
+    enabled: false,
+    intervalHours: 24,
+    targetDir: '',
+    lastRunAt: null,
+  },
 });
 
 export class AppConfigStore {
@@ -46,6 +52,24 @@ export class AppConfigStore {
     this.save();
   }
 
+  setScheduledBackup(config: AppConfigDto['scheduledBackup']): void {
+    this.config.scheduledBackup = config;
+    this.save();
+  }
+
+  updateScheduledBackupLastRun(iso: string): void {
+    if (!this.config.scheduledBackup) return;
+    this.config.scheduledBackup.lastRunAt = iso;
+    this.config.scheduledBackup.lastRunError = null;
+    this.save();
+  }
+
+  setScheduledBackupError(message: string): void {
+    if (!this.config.scheduledBackup) return;
+    this.config.scheduledBackup.lastRunError = message;
+    this.save();
+  }
+
   private load(): AppConfigDto {
     if (!existsSync(this.configPath)) {
       return defaultConfig();
@@ -58,6 +82,7 @@ export class AppConfigStore {
         recentDatabases: parsed.recentDatabases ?? [],
         explorerExpandedNodes: parsed.explorerExpandedNodes ?? [],
         windowBounds: parsed.windowBounds,
+        scheduledBackup: parsed.scheduledBackup ?? defaultConfig().scheduledBackup,
       };
     } catch {
       return defaultConfig();

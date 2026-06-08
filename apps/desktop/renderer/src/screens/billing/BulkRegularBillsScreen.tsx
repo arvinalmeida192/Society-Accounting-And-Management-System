@@ -10,21 +10,24 @@ export function BulkRegularBillsScreen(): React.ReactElement {
   const [billDate, setBillDate] = useState(new Date().toISOString().slice(0, 10));
   const [dueDate, setDueDate] = useState('');
   const [buildingId, setBuildingId] = useState('');
+  const [startingBillNo, setStartingBillNo] = useState(1);
   const [error, setError] = useState<string | null>(null);
   const [message, setMessage] = useState<string | null>(null);
   const [confirmOpen, setConfirmOpen] = useState(false);
   const [running, setRunning] = useState(false);
 
   const load = useCallback(async (): Promise<void> => {
-    const [periodRes, buildingRes, nextRes] = await Promise.all([
+    const [periodRes, buildingRes, nextRes, paramsRes] = await Promise.all([
       window.sams.billing.listPeriods(),
       window.sams.property.listBuildings(),
       window.sams.billing.getNextPeriod(),
+      window.sams.society.getParameters(),
     ]);
     if (periodRes.success && periodRes.data) setPeriods(periodRes.data);
     if (buildingRes.success && buildingRes.data) setBuildings(buildingRes.data.items);
     if (nextRes.success && nextRes.data) setPeriodKey(nextRes.data.periodKey);
     else if (periodRes.success && periodRes.data?.[0]) setPeriodKey(periodRes.data[0].periodKey);
+    if (paramsRes.success && paramsRes.data) setStartingBillNo(paramsRes.data.bulkBillStartingNumber);
   }, []);
 
   useEffect(() => {
@@ -39,6 +42,7 @@ export function BulkRegularBillsScreen(): React.ReactElement {
       billForPeriodKey: periodKey,
       billDate,
       dueDate: dueDate || undefined,
+      startingBillNo,
       buildingId: buildingId || undefined,
     });
     setRunning(false);
@@ -91,6 +95,15 @@ export function BulkRegularBillsScreen(): React.ReactElement {
               </option>
             ))}
           </select>
+        </label>
+        <label>
+          Starting bill number (SP-016)
+          <input
+            type="number"
+            min={1}
+            value={startingBillNo}
+            onChange={(event) => setStartingBillNo(Number(event.target.value))}
+          />
         </label>
       </div>
 

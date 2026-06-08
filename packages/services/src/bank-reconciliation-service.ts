@@ -7,6 +7,7 @@ import {
 } from '@sams/shared-types';
 import { parseIsoDate } from './financial-year.js';
 import { getClosingBalance } from './ledger-balance-service.js';
+import { assertWritable } from './assert-writable.js';
 
 function toNumber(value: { toString(): string } | number | null | undefined): number {
   if (value == null) return 0;
@@ -50,8 +51,9 @@ export async function listBankRecItems(
       const deposits = toNumber(line.crAmount);
       const withdrawals = toNumber(line.drAmount);
       const clearedOnDate = line.chequeDetail?.clearedOnDate;
+      const hasChequeDetail = Boolean(line.chequeDetail);
 
-      return {
+      const row = {
         voucherLineId: line.id,
         voucherId: line.voucher.id,
         voucherNo: line.voucher.systemVoucherNo,
@@ -64,16 +66,17 @@ export async function listBankRecItems(
         deposits,
         withdrawals,
         remark: line.voucher.narration || line.particulars,
-        hasChequeDetail: Boolean(line.chequeDetail),
       };
+
+      return { row, hasChequeDetail };
     })
-    .filter((row) => {
+    .filter(({ row, hasChequeDetail }) => {
       if (status === BankRecStatus.ALL) return true;
-      if (!row.hasChequeDetail) return status === BankRecStatus.UNCLEARED;
+      if (!hasChequeDetail) return status === BankRecStatus.UNCLEARED;
       if (status === BankRecStatus.CLEARED) return Boolean(row.clearedOnDate);
       return !row.clearedOnDate;
     })
-    .map(({ hasChequeDetail: _ignored, ...row }) => row);
+    .map(({ row }) => row);
 }
 
 export async function bulkUpdateClearingDates(
@@ -82,6 +85,7 @@ export async function bulkUpdateClearingDates(
   clearingDate: string,
   actorId: string,
 ): Promise<{ updated: number }> {
+  await assertWritable(client);
   if (!voucherLineIds.length) return { updated: 0 };
 
   const parsedDate = parseIsoDate(clearingDate, 'clearingDate');

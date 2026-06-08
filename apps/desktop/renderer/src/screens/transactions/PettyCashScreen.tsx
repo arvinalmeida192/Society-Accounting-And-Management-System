@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useMemo, useState } from 'react';
+import { useCallback, useMemo, useState } from 'react';
 import type { AccountPickerItem, VoucherLineInputDto } from '@sams/shared-types';
 import {
   AccountPickerModal,

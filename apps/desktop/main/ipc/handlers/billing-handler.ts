@@ -40,11 +40,11 @@ function requireUserId(): string {
 }
 
 export const billingHandlers = {
-  listPeriods: (async (_ctx, payload: { financialYearId?: string }) =>
-    listBillingPeriods(getActivePrisma(), payload.financialYearId)) as IpcHandler<
-    { financialYearId?: string },
-    BillingPeriodDto[]
-  >,
+  listPeriods: (async (ctx) => {
+    const financialYearId = ctx.session.financialYearId;
+    if (!financialYearId) throw new Error('No active financial year in session.');
+    return listBillingPeriods(getActivePrisma(), financialYearId);
+  }) as IpcHandler<{ financialYearId?: string }, BillingPeriodDto[]>,
 
   getNextPeriod: (async () =>
     getNextOpenPeriod(getActivePrisma())) as IpcHandler<

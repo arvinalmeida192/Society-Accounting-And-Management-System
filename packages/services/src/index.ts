@@ -3,6 +3,7 @@ export {
   hashPassword,
   verifyPassword,
   loginUser,
+  changePassword,
   AuthError,
 } from './auth-service.js';
 export {
@@ -17,7 +18,12 @@ export {
   validateFinancialYearInput,
   validateAdminUserInput,
 } from './startup-service.js';
-export { generateFinancialYearLabel, parseIsoDate } from './financial-year.js';
+export {
+  generateFinancialYearLabel,
+  getActiveFinancialYear,
+  getActiveFinancialYearId,
+  parseIsoDate,
+} from './financial-year.js';
 export {
   generateBillingPeriodCalendar,
   regenerateBillingPeriodCalendar,
@@ -37,9 +43,21 @@ export {
 } from './society-config-service.js';
 export { seedSocietyConfiguration, seedReportTemplates } from './report-template-seed.js';
 export { ensureSocietyConfiguration } from './ensure-society-config.js';
+export { assertWritable, YearClosedError } from './assert-writable.js';
 export { ensurePermissions } from './ensure-permissions.js';
 export { finalizeSocietyBootstrap } from './startup-service.js';
 export { AuditService, noopAuditService, type AuditLogInput, type AuditLogWriter } from './audit-service.js';
+export { backupDatabase, restoreDatabase } from './backup-service.js';
+export { listUsers, saveUser, resetUserPassword } from './user-service.js';
+export {
+  getYearEndChecklist,
+  closeYear,
+  reopenYear,
+  carryForwardDatabaseFiles,
+  carryForwardToNewYear,
+  markSourceDatabaseReadOnly,
+} from './year-end-service.js';
+export { listAuditLogs, auditLogsToCsv, createPrismaAuditWriter } from './audit-log-service.js';
 export { NumberSeriesService, numberSeriesService } from './number-series-service.js';
 export {
   calculateInterest,
@@ -73,6 +91,7 @@ export {
   allocateRegularSettlement,
   allocateSupplementarySettlement,
   getOpenBillsForMember,
+  computeMemberArrearsBreakdown,
 } from './settlement-service.js';
 export {
   onReceiptPosted,
@@ -107,6 +126,27 @@ export {
   updateTdsRecord,
 } from './tds-service.js';
 export { generateForm16A } from './form16a-service.js';
+export { seedLetterTemplates } from './letter-template-seed.js';
+export {
+  renderPlaceholders,
+  formatMcAct101ReferenceNo,
+  computeMemberOutstanding,
+  listLetterTemplates,
+  saveLetterTemplate,
+  listDefaulters,
+  generateReminder,
+  getGeneratedLetter,
+  listGeneratedLetters,
+  saveGeneralLetter,
+  listCommitteeMembers,
+  saveCommitteeMember,
+  deleteCommitteeMember,
+  listMeetingMinutes,
+  getMeetingMinutes,
+  saveMeetingMinutes,
+  deleteMeetingMinutes,
+  renderMeetingMinutesPrint,
+} from './correspondence-service.js';
 export {
   validateVoucherBalance,
   validateManualVoucherNo,
@@ -263,3 +303,11 @@ export {
   listBillRegisterMapping,
   saveBillRegisterMapping,
 } from './tariff-service.js';
+export {
+  listReportCatalog,
+  runReport,
+  previewReport,
+  renderReportHtml,
+  reportToCsv,
+  exportReportCsv,
+} from './report-service.js';

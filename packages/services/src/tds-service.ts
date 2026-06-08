@@ -2,6 +2,7 @@ import type { Prisma, PrismaClient } from '@prisma/client';
 import { VoucherType as PrismaVoucherType } from '@prisma/client';
 import type { TdsChallanDto, TdsRecordDto } from '@sams/shared-types';
 import { parseIsoDate } from './financial-year.js';
+import { assertWritable } from './assert-writable.js';
 
 type TxClient = Prisma.TransactionClient | PrismaClient;
 
@@ -244,6 +245,7 @@ export async function updateTdsRecord(
   dto: TdsRecordDto,
   actorId: string,
 ): Promise<TdsRecordDto> {
+  await assertWritable(client);
   const record = await client.tdsRecord.update({
     where: { id: dto.id },
     data: {
@@ -274,6 +276,7 @@ export async function saveTdsChallan(
   dto: TdsChallanDto,
   actorId: string,
 ): Promise<TdsChallanDto> {
+  await assertWritable(client);
   const financialYearId = dto.financialYearId;
   const data = {
     financialYearId,

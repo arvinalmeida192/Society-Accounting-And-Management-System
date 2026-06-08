@@ -5,7 +5,7 @@
   "type": "module",
   "main": "./out/main/index.js",
   "scripts": {
-    "dev": "ELECTRON_DISABLE_SANDBOX=1 electron-vite dev",
+    "dev": "npm run build -w @sams/shared-types && npm run build -w @sams/services && ELECTRON_DISABLE_SANDBOX=1 electron-vite dev",
     "build": "npm run build -w @sams/shared-types && npm run build -w @sams/services && npm run build -w @sams/db && electron-vite build",
     "preview": "electron-vite preview",
     "lint": "eslint . --max-warnings 0",

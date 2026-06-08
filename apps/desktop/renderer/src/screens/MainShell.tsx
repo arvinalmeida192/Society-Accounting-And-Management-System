@@ -1,7 +1,10 @@
 import { Navigate, Route, Routes, useNavigate } from 'react-router-dom';
 import type { SessionDto } from '@sams/shared-types';
+import { PermissionAction } from '@sams/shared-types';
 import { ErrorBoundary } from '../components/ErrorBoundary';
 import { ExplorerTree } from '../components/ExplorerTree';
+import { PermissionGate } from '../components/PermissionGate';
+import { usePermission } from '../hooks/usePermission';
 import { useTabStore } from '../store/tabStore';
 import { useSession } from '../hooks/SessionContext';
 
@@ -63,6 +66,16 @@ import { SinkingFundRegisterScreen } from './statutory/SinkingFundRegisterScreen
 import { IFormRegisterScreen } from './statutory/IFormRegisterScreen';
 import { TdsRecordScreen } from './tds/TdsRecordScreen';
 import { Form16AScreen } from './tds/Form16AScreen';
+import { ReminderLettersScreen } from './correspondence/ReminderLettersScreen';
+import { GeneralLettersScreen } from './correspondence/GeneralLettersScreen';
+import { CommitteeMembersScreen } from './correspondence/CommitteeMembersScreen';
+import { MeetingMinutesScreen } from './correspondence/MeetingMinutesScreen';
+import { UsersScreen } from './admin/UsersScreen';
+import { BackupRestoreScreen } from './admin/BackupRestoreScreen';
+import { YearEndScreen } from './admin/YearEndScreen';
+import { AuditLogScreen } from './admin/AuditLogScreen';
+import { ReportsHubScreen } from './reports/ReportsHubScreen';
+import { ReportViewerScreen } from './reports/ReportViewerScreen';
 
 function PlaceholderPane({ title }: { title: string }): React.ReactElement {
   return (
@@ -82,6 +95,7 @@ export function MainShell({ session }: MainShellProps): React.ReactElement {
   const setActiveTab = useTabStore((state) => state.setActiveTab);
   const toggleExplorer = useTabStore((state) => state.toggleExplorer);
   const { refreshSession } = useSession();
+  const canOpenNewYear = usePermission('startup', PermissionAction.CREATE);
 
   const activeTab = tabs.find((tab) => tab.id === activeTabId) ?? tabs[0];
 
@@ -106,6 +120,11 @@ export function MainShell({ session }: MainShellProps): React.ReactElement {
           </p>
         </div>
         <div className="main-header-actions">
+          {canOpenNewYear && (
+            <button type="button" onClick={() => navigate('/startup/new-year')}>
+              Open New FY
+            </button>
+          )}
           <button type="button" onClick={toggleExplorer}>
             {explorerVisible ? 'Hide Explorer' : 'Show Explorer'}
           </button>
@@ -114,6 +133,12 @@ export function MainShell({ session }: MainShellProps): React.ReactElement {
           </button>
         </div>
       </header>
+
+      {session.isReadOnly && (
+        <div className="form-error" role="status" style={{ margin: '0 1rem' }}>
+          Financial year is closed (read-only). Posting and edits are disabled until the year is reopened or a new financial year is opened.
+        </div>
+      )}
 
       <div className="tab-bar">
         {tabs.map((tab) => (
@@ -181,7 +206,16 @@ export function MainShell({ session }: MainShellProps): React.ReactElement {
             <Route path="statutory/iform" element={<IFormRegisterScreen />} />
             <Route path="tds/records" element={<TdsRecordScreen />} />
             <Route path="tds/form16a" element={<Form16AScreen />} />
-            <Route path="reports" element={<PlaceholderPane title="Reports" />} />
+            <Route path="correspondence/reminders" element={<ReminderLettersScreen />} />
+            <Route path="correspondence/letters" element={<GeneralLettersScreen />} />
+            <Route path="correspondence/committee" element={<CommitteeMembersScreen />} />
+            <Route path="correspondence/minutes" element={<MeetingMinutesScreen />} />
+            <Route path="admin/users" element={<PermissionGate resource="admin.users" action={PermissionAction.READ}><UsersScreen /></PermissionGate>} />
+            <Route path="admin/backup" element={<PermissionGate resource="admin.backup" action={PermissionAction.READ}><BackupRestoreScreen /></PermissionGate>} />
+            <Route path="admin/year-end" element={<PermissionGate resource="admin.yearEnd" action={PermissionAction.READ}><YearEndScreen /></PermissionGate>} />
+            <Route path="admin/audit-log" element={<PermissionGate resource="admin.audit" action={PermissionAction.READ}><AuditLogScreen /></PermissionGate>} />
+            <Route path="reports" element={<PermissionGate resource="reports" action={PermissionAction.READ}><ReportsHubScreen /></PermissionGate>} />
+            <Route path="reports/:reportId" element={<PermissionGate resource="reports" action={PermissionAction.READ}><ReportViewerScreen /></PermissionGate>} />
             <Route path="*" element={<Navigate to="home" replace />} />
           </Routes>
           </ErrorBoundary>

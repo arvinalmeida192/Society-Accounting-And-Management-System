@@ -13,6 +13,7 @@ import {
 } from '@sams/shared-types';
 import {
   assertValidSamsDatabase,
+  carryForwardDatabaseFiles,
   createSocietyInDatabase,
   ensurePermissions,
   ensureSocietyConfiguration,
@@ -22,10 +23,11 @@ import {
 } from '@sams/services';
 import type { AppConfigStore } from '../../config/app-config.js';
 import {
+  closeDatabase,
   connectDatabase,
   createEmptyDatabaseFile,
-  deployMigrations,
   getActivePrisma,
+  withEphemeralClient,
 } from '../../database/database-manager.js';
 import type { IpcHandler } from '../pipeline.js';
 import { sessionManager } from '../../session/session-manager.js';
@@ -37,8 +39,9 @@ export function createStartupHandlers(appConfig: AppConfigStore): {
   createSociety: IpcHandler<CreateSocietyWizardDto, CreateSocietyResult>;
   openNewFinancialYear: IpcHandler<
     OpenNewFinancialYearPayload,
-    { dbPath: string; sessionToken: string }
+    { dbPath: string; sessionToken: string; warning?: string }
   >;
+  closeDatabaseSession: IpcHandler<Record<string, never>, { success: boolean }>;
   pickOpenDatabase: IpcHandler<Record<string, never>, PickDatabaseResult>;
   pickSaveDatabase: IpcHandler<{ defaultName?: string }, PickDatabaseResult>;
 } {
@@ -76,13 +79,17 @@ export function createStartupHandlers(appConfig: AppConfigStore): {
 
     validateDatabase: async (_ctx, payload) => {
       try {
-        await connectDatabase(payload.path);
-        const result = await validateSamsDatabase(getActivePrisma());
-        return result;
+        return await withEphemeralClient(payload.path, (client) => validateSamsDatabase(client));
       } catch (error) {
+        const message = error instanceof Error ? error.message : 'Unable to validate database.';
+        const code =
+          error instanceof Error && 'code' in error && typeof error.code === 'string'
+            ? error.code
+            : ErrorCodes.INVALID_DB;
         return {
           valid: false,
-          errorMessage: error instanceof Error ? error.message : 'Unable to validate database.',
+          errorMessage: message,
+          errorCode: code,
         };
       }
     },
@@ -129,9 +136,16 @@ export function createStartupHandlers(appConfig: AppConfigStore): {
       };
     },
 
-    openNewFinancialYear: async (_ctx, payload) => {
-      await connectDatabase(payload.sourceDbPath);
-      const sourceValidation = await validateSamsDatabase(getActivePrisma());
+    openNewFinancialYear: async (ctx, payload) => {
+      if (!ctx.session.userId) {
+        throw Object.assign(new Error('Authentication is required to open a new financial year.'), {
+          code: ErrorCodes.PERMISSION_DENIED,
+        });
+      }
+
+      const sourceValidation = await withEphemeralClient(payload.sourceDbPath, (client) =>
+        validateSamsDatabase(client),
+      );
       if (!sourceValidation.valid) {
         throw Object.assign(
           new Error(sourceValidation.errorMessage ?? 'Source database is invalid.'),
@@ -145,14 +159,50 @@ export function createStartupHandlers(appConfig: AppConfigStore): {
         });
       }
 
-      await deployMigrations(payload.targetDbPath);
+      if (!payload.newFyStartDate || !payload.newFyEndDate) {
+        throw Object.assign(new Error('New financial year start and end dates are required.'), {
+          code: ErrorCodes.VALIDATION_ERROR,
+        });
+      }
 
-      throw Object.assign(
-        new Error(
-          'New financial year carry-forward is not yet implemented. Complete setup in Phase 17.',
-        ),
-        { code: ErrorCodes.NOT_IMPLEMENTED },
+      const actorId = ctx.session.userId;
+      const result = await carryForwardDatabaseFiles(
+        payload.sourceDbPath,
+        payload.targetDbPath,
+        payload.newFyStartDate,
+        payload.newFyEndDate,
+        actorId,
+        connectDatabase,
+        withEphemeralClient,
       );
+
+      const sessionToken = randomUUID();
+      await connectDatabase(result.dbPath);
+      await ensurePermissions(getActivePrisma());
+      await ensureSocietyConfiguration(getActivePrisma());
+
+      sessionManager.bindDatabase({
+        sessionToken,
+        databasePath: result.dbPath,
+        financialYearId: result.financialYearId,
+        fyLabel: result.fyLabel,
+        societyName: result.societyName,
+        isReadOnly: false,
+      });
+
+      appConfig.rememberDatabase(result.dbPath, `${result.societyName} (${result.fyLabel})`);
+
+      return {
+        dbPath: result.dbPath,
+        sessionToken,
+        ...(result.warning ? { warning: result.warning } : {}),
+      };
+    },
+
+    closeDatabaseSession: async () => {
+      sessionManager.clearDatabase();
+      await closeDatabase();
+      return { success: true };
     },
 
     pickOpenDatabase: async () => {

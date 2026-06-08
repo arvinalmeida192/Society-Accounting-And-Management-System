@@ -14,6 +14,7 @@ import {
   UpcomingFdMaturityDto,
 } from '@sams/shared-types';
 import { parseIsoDate } from './financial-year.js';
+import { assertWritable } from './assert-writable.js';
 
 type PostedReceiptVoucher = {
   id: string;
@@ -557,6 +558,7 @@ export async function saveFdRegister(
   dto: FdRegisterDto,
   actorId: string,
 ): Promise<FdRegisterDto> {
+  await assertWritable(client);
   if (!dto.fdrNo?.trim()) {
     throw Object.assign(new Error('FDR number is required.'), { code: 'VALIDATION_ERROR' });
   }
@@ -597,6 +599,7 @@ export async function saveFdRegister(
 }
 
 export async function deleteFdRegister(client: PrismaClient, id: string): Promise<void> {
+  await assertWritable(client);
   await client.fixedDepositRegister.delete({ where: { id } });
 }
 
@@ -661,6 +664,7 @@ export async function savePropertyRegisterEntry(
   dto: PropertyRegisterEntryDto,
   actorId: string,
 ): Promise<PropertyRegisterEntryDto> {
+  await assertWritable(client);
   if (!dto.flatNo?.trim()) {
     throw Object.assign(new Error('Flat number is required.'), { code: 'VALIDATION_ERROR' });
   }
@@ -704,6 +708,7 @@ export async function deletePropertyRegisterEntry(
   client: PrismaClient,
   id: string,
 ): Promise<void> {
+  await assertWritable(client);
   await client.propertyRegisterEntry.delete({ where: { id } });
 }
 
@@ -767,6 +772,7 @@ export async function saveIFormRegister(
   dto: IFormRegisterDto,
   actorId: string,
 ): Promise<IFormRegisterDto> {
+  await assertWritable(client);
   if (!dto.memberId) {
     throw Object.assign(new Error('Member is required.'), { code: 'VALIDATION_ERROR' });
   }
@@ -811,6 +817,7 @@ export async function saveIFormRegister(
 }
 
 export async function deleteIFormRegister(client: PrismaClient, id: string): Promise<void> {
+  await assertWritable(client);
   await client.iFormRegister.delete({ where: { id } });
 }
 
@@ -819,6 +826,7 @@ export async function saveIFormShareEntry(
   dto: IFormShareEntryDto,
   actorId: string,
 ): Promise<IFormShareEntryDto> {
+  await assertWritable(client);
   if (!dto.iFormRegisterId) {
     throw Object.assign(new Error('I-Form register is required.'), { code: 'VALIDATION_ERROR' });
   }
@@ -844,6 +852,7 @@ export async function saveIFormShareEntry(
 }
 
 export async function deleteIFormShareEntry(client: PrismaClient, id: string): Promise<void> {
+  await assertWritable(client);
   await client.iFormShareEntry.delete({ where: { id } });
 }
 
@@ -852,6 +861,7 @@ export async function saveIFormShareTransfer(
   dto: IFormShareTransferDto,
   actorId: string,
 ): Promise<IFormShareTransferDto> {
+  await assertWritable(client);
   if (!dto.iFormRegisterId) {
     throw Object.assign(new Error('I-Form register is required.'), { code: 'VALIDATION_ERROR' });
   }
@@ -879,5 +889,6 @@ export async function saveIFormShareTransfer(
 }
 
 export async function deleteIFormShareTransfer(client: PrismaClient, id: string): Promise<void> {
+  await assertWritable(client);
   await client.iFormShareTransfer.delete({ where: { id } });
 }

@@ -4,6 +4,7 @@ import { toIndianRupeesWords } from './amount-in-words-service.js';
 import { loadReportTemplateHtml } from './report-template-loader.js';
 import { getReportFormatConfig } from './society-config-service.js';
 import { cancelVoucher } from './voucher-service.js';
+import { assertWritable } from './assert-writable.js';
 
 function toNumber(value: { toString(): string } | number | null | undefined): number {
   if (value == null) return 0;
@@ -127,6 +128,7 @@ export async function cancelChequeVoucher(
   actorId: string,
   reasonId?: string,
 ): Promise<{ original: Awaited<ReturnType<typeof cancelVoucher>>['original']; reversal: Awaited<ReturnType<typeof cancelVoucher>>['reversal'] }> {
+  await assertWritable(client);
   const voucher = await client.voucher.findUniqueOrThrow({
     where: { id: voucherId },
     include: { lines: { include: { chequeDetail: true } } },

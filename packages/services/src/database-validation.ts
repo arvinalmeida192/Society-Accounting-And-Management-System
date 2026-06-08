@@ -2,6 +2,7 @@ import type { PrismaClient } from '@prisma/client';
 import { ErrorCodes } from '@sams/shared-types';
 import type { ValidateDatabaseResult } from '@sams/shared-types';
 import { SCHEMA_VERSION } from '@sams/db';
+import { getActiveFinancialYear } from './financial-year.js';
 
 export class DatabaseValidationError extends Error {
   readonly code: string;
@@ -49,11 +50,10 @@ export async function validateSamsDatabase(
     };
   }
 
-  const financialYear = await client.financialYear.findFirst({
-    orderBy: { startDate: 'desc' },
-  });
-
-  if (!financialYear) {
+  let financialYear;
+  try {
+    financialYear = await getActiveFinancialYear(client);
+  } catch {
     return {
       valid: false,
       errorMessage: 'Not a SAMS database: financial year record is missing.',
@@ -84,9 +84,7 @@ export async function assertValidSamsDatabase(client: PrismaClient): Promise<{
   }
 
   const identity = await client.societyIdentity.findFirstOrThrow();
-  const financialYear = await client.financialYear.findFirstOrThrow({
-    orderBy: { startDate: 'desc' },
-  });
+  const financialYear = await getActiveFinancialYear(client);
 
   return {
     societyName: identity.societyName,
